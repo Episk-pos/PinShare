@@ -7,7 +7,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 
+	"pinshare/internal/config"
 	"pinshare/internal/p2p"
 	"pinshare/internal/store"
 
@@ -59,6 +62,12 @@ func (s *Server) ListAllFiles(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(apiFiles)
+}
+
+func (s *Server) Health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 // GetFileBySHA256 handles GET /files/{fileSHA256}
@@ -244,6 +253,44 @@ func (s *Server) GetP2PStatus(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(status)
 }
 
+func (s *Server) ListTopicPeers(w http.ResponseWriter, r *http.Request) {
+	manager := p2p.GetPubSubManager()
+	if manager == nil {
+		writeError(w, http.StatusInternalServerError, "PubSub manager not initialized")
+		return
+	}
+
+	topicPeers := manager.ListPeers()
+	peerIDs := make([]string, len(topicPeers))
+	for i, p := range topicPeers {
+		peerIDs[i] = p.String()
+	}
+
+	config, _ := config.LoadConfig()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"topic":     config.MetadataTopicID,
+		"peerCount": len(topicPeers),
+		"peers":     peerIDs,
+	})
+}
+
+	topicPeers := manager.ListPeers()
+	peerIDs := make([]string, len(topicPeers))
+	for i, p := range topicPeers {
+		peerIDs[i] = p.String()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"topic":     appconf.MetadataTopicID, // From global config
+		"peerCount": len(topicPeers),
+		"peers":     peerIDs,
+	})
+}
+
 var p2pNodeInstance *host.Host
 
 // SetP2PManager allows main to set the global PubSubManager instance
@@ -266,19 +313,20 @@ func Start(ctx context.Context, node host.Host) {
 	mux := http.NewServeMux()
 	mux.Handle("/", apiHandler)
 	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/p2p/topic-peers", server.ListTopicPeers)
+	mux.HandleFunc("/health", server.Health)
+	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 
-	// Check if port 8080 is in use. If so, increment until an open port is found.
-	var port int = 9090
-	for {
-		addr := fmt.Sprintf("0.0.0.0:%d", port)
-		conn, err := net.Listen("tcp", addr)
+	portStr := os.Getenv("API_PORT")
+	var port int
+	if portStr != "" {
+		var err error
+		port, err = strconv.Atoi(portStr)
 		if err != nil {
-			fmt.Printf("[INFO] Port %d is in use, trying next...\n", port)
-			port++
-			continue
+			log.Fatalf("[ERROR] Invalid API_PORT env: %v", err)
 		}
-		conn.Close()
-		break
+	} else {
+		port = 9090
 	}
 
 	addr := fmt.Sprintf("0.0.0.0:%d", port)

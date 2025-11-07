@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  pinshare:
+    image: ghcr.io/cypherpunk-labs/pinshare:latest
+    container_name: pinshare
+    # user: "${UID:-1000}:${GID:-1000}"  # Run as host user to avoid permission issues on volumes
+    volumes:
+      - ./data:/opt/pinshare/data
+    ports:
+      - "5001:5001"  # IPFS API + Web UI (http://localhost:5001/webui)
+      - "8080:8080"  # IPFS Gateway (previews/content serving)
+      - "9090:9090"  # PinShare API (for UI integration)
+      # Optional P2P ports for full network connectivity (add if needed)
+      # - "4001:4001"
+      # - "4001:4001/udp"
+      # - "50001:50001"
+    environment:
+      - VT_TOKEN=REDACTED  # Set your VirusTotal token if using API path
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]  # Add /health endpoint if needed, or use IPFS check
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    init: true  # Ensure proper init for user/perms
+
+  pinshare-ui:
+    build:
+      context: ./pinshare-ui
+      dockerfile: Dockerfile
+      #args:
+      #  - UID=${UID:-1000}
+      #  - GID=${GID:-1000}
+    container_name: pinshare-ui
+    # user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "5174:80"  # Static UI (http://localhost:5174)
+    depends_on:
+      - pinshare
+    environment:
+      - VITE_PIN_SHARE_API=http://pinshare:9090
+      - VITE_IPFS_API=http://pinshare:5001
+      - VITE_GATEWAY_BASE=http://localhost:8080/ipfs  # Host gateway for previews
+    restart: unless-stopped
+
+networks:
+  default:
+    name: pinshare-network
