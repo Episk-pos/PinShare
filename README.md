@@ -73,10 +73,74 @@ Key configuration settings:
 -   `metadataTopicID`: The PubSub topic name for sharing metadata.
 
 ### Running PinShare
+ 
+#### Docker (Recommended)
+ 
+The Docker image bundles IPFS, so everything runs in one container. For minimal access (IPFS Web UI and Gateway), expose only essential ports:
 
+```bash
+docker run -d --name pinshare \
+  -v $(pwd):/opt/pinshare/data \
+  -p 5001:5001 \
+  -p 8080:8080 \
+  ghcr.io/cypherpunk-labs/pinshare:latest
+```
+ 
+This starts the IPFS daemon internally, waits for it to initialize, then launches PinShare. Access:
+- IPFS Web UI: http://localhost:5001/webui
+- IPFS Gateway: http://localhost:8080 (for content previews)
+
+Optional ports (uncomment for advanced use):
+- `-p 9090:9090` for PinShare API (e.g., custom tools).
+- `-p 4001:4001 -p 4001:4001/udp` for IPFS Swarm (P2P connectivity).
+- `-p 50001:50001` for libp2p (metadata gossip).
+
+For interactive mode (foreground logs), add `-it` and optional ports as needed.
+
+To run just the IPFS daemon from the same image (e.g., for separate management or testing):
+ 
+```bash
+docker run -d --name ipfs-daemon \
+  -v $(pwd)/ipfs-data:/data/ipfs \
+  -p 5001:5001 \
+  -p 8080:8080 \
+  ghcr.io/cypherpunk-labs/pinshare:latest \
+  /usr/local/bin/start_ipfs daemon
+```
+
+This exposes the IPFS API (5001 with Web UI at http://localhost:5001/webui) and gateway (8080). Optional: Add `-p 4001:4001 -p 4001:4001/udp` for Swarm. Note: PinShare expects IPFS to be local; for a separate PinShare container, use host networking (`--network host`) or mount the IPFS API socket.
+
+#### Docker Compose (Full Stack with UI)
+ 
+For a complete setup including the React UI, use docker-compose.yml (includes PinShare + built UI):
+
+```bash
+docker-compose up -d --build
+```
+
+This starts:
+- PinShare with IPFS (ports 5001, 8080).
+
+Access:
+- IPFS Web UI: http://localhost:5001/webui
+- IPFS Gateway: http://localhost:8080
+
+Optional: Uncomment P2P ports in compose for network connectivity. Logs: `docker-compose logs -f`.
+
+#### Non-Docker
+ 
+For non-Docker runs, first ensure the IPFS daemon is running (PinShare interacts with it via CLI for file adding and pinning). You can use the Docker command above to host IPFS in a container, or install/run IPFS natively:
+ 
+```bash
+ipfs daemon &
+```
+ 
+This starts the IPFS node on port 5001. If using IPFS Desktop, ensure it's running and the daemon is active.
+ 
 To start the service, simply run the compiled binary:
 
 ```bash
+go build -o pinshare .
 ./pinshare
 ```
 
