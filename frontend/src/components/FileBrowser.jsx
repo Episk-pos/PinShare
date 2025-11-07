@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { filesAPI } from '../services/api';
-import { Search, FileText, Calendar, Tag, AlertTriangle } from 'lucide-react';
+import { Search, FileText, Calendar, Tag, AlertTriangle, Download, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import FilePreviewModal from './FilePreviewModal';
 
 const FileBrowser = () => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [previewFile, setPreviewFile] = useState(null);
 
   useEffect(() => {
     fetchFiles();
@@ -169,10 +171,38 @@ const FileBrowser = () => {
                     ))}
                   </div>
                 )}
+
+                {file.banSet === 0 && (
+                  <div className="file-actions">
+                    <button
+                      className="action-btn preview-btn"
+                      onClick={() => setPreviewFile(file)}
+                      title="Preview file"
+                    >
+                      <Eye size={16} />
+                      Preview
+                    </button>
+                    <button
+                      className="action-btn download-btn"
+                      onClick={() => filesAPI.downloadFile(file.fileSHA256)}
+                      title="Download file"
+                    >
+                      <Download size={16} />
+                      Download
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </>
+      )}
+
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
     </div>
   );

@@ -245,15 +245,21 @@ func (psm *PubSubManager) handleIncomingMessages() {
 				if err := psm.metadataStore.Save(psm.dataFile); err != nil {
 					fmt.Printf("[ERROR] Failed to save metadata after applying gossip update from %s: %v\n", msg.ReceivedFrom.String(), err)
 				}
-				newFile, err := ProcessDownload(receivedMeta)
-				if err != nil {
-					fmt.Printf("[ERROR] Failed to process download for %s: %v\n", receivedMeta.FileSHA256, err)
-					continue
-				}
-				if newFile {
-					fmt.Println("[INFO] Successfully pinned and cached download for " + receivedMeta.IPFSCID)
+
+				// Skip automatic download if running in Archive Node mode (metadata-only)
+				if appconfInstance != nil && appconfInstance.FFArchiveNode {
+					fmt.Printf("[INFO] Archive mode enabled - skipping automatic download for %s\n", receivedMeta.IPFSCID)
 				} else {
-					fmt.Println("[INFO] File did not pass security check for " + receivedMeta.IPFSCID)
+					newFile, err := ProcessDownload(receivedMeta)
+					if err != nil {
+						fmt.Printf("[ERROR] Failed to process download for %s: %v\n", receivedMeta.FileSHA256, err)
+						continue
+					}
+					if newFile {
+						fmt.Println("[INFO] Successfully pinned and cached download for " + receivedMeta.IPFSCID)
+					} else {
+						fmt.Println("[INFO] File did not pass security check for " + receivedMeta.IPFSCID)
+					}
 				}
 			}
 

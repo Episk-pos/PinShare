@@ -136,6 +136,9 @@ func LoadConfig() (*AppConfig, error) {
 	if err := parseBoolEnv("PS_FF_IGNORE_UPLOADS_IN_METADATA", &conf.FFIgnoreUploadsInMetadata); err != nil {
 		return nil, err
 	}
+	if err := parseBoolEnv("PS_FF_ARCHIVE_NODE", &conf.FFArchiveNode); err != nil {
+		return nil, err
+	}
 
 	return conf, nil
 }

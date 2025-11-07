@@ -7,6 +7,8 @@ A modern React-based web interface for PinShare - a P2P file sharing system with
 ### File Browser
 - **View All Files**: Browse all files shared in the network with comprehensive metadata
 - **Search & Filter**: Search files by SHA256 hash, IPFS CID, file type, or tags
+- **Download Files**: One-click download of any file from IPFS
+- **Preview Files**: In-browser preview for PDFs and supported file types
 - **Metadata Display**:
   - File type and SHA256 hash
   - IPFS Content Identifier (CID)
@@ -15,6 +17,7 @@ A modern React-based web interface for PinShare - a P2P file sharing system with
   - Moderation votes
   - Ban status (Policy Violation, Indecent Content, Malware)
 - **Real-time Updates**: Automatically refreshes file list every 10 seconds
+- **Smart Actions**: Download and Preview buttons only shown for non-banned files
 
 ### Network View
 - **Interactive Network Diagram**: Visualize P2P connections using force-directed graph

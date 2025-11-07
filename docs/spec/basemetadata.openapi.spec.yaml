@@ -201,6 +201,94 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /files/{fileSHA256}/download:
+    get:
+      summary: Download file from IPFS
+      operationId: downloadFile
+      tags:
+        - Metadata
+      description: Downloads the file content from IPFS on-demand. The file is fetched from IPFS if not in cache, then streamed to the client with appropriate headers for download.
+      parameters:
+        - name: fileSHA256
+          in: path
+          required: true
+          description: The SHA256 hash of the file.
+          schema:
+            type: string
+            format: sha256
+      responses:
+        '200':
+          description: File downloaded successfully.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: File is banned and cannot be downloaded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to fetch file from IPFS.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /files/{fileSHA256}/content:
+    get:
+      summary: Serve file content for preview
+      operationId: serveFile
+      tags:
+        - Metadata
+      description: Serves the file content for inline preview (e.g., PDF viewer in browser). The file is fetched from IPFS if not in cache, then streamed with inline content disposition.
+      parameters:
+        - name: fileSHA256
+          in: path
+          required: true
+          description: The SHA256 hash of the file.
+          schema:
+            type: string
+            format: sha256
+      responses:
+        '200':
+          description: File content served successfully.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: File is banned and cannot be viewed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to fetch file from IPFS.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /p2p/status:
     get:
       summary: Get P2P node status

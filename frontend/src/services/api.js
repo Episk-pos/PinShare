@@ -46,6 +46,17 @@ export const filesAPI = {
     const response = await api.post(`/files/${fileSHA256}/votes/removal`);
     return response.data;
   },
+
+  // Download file
+  downloadFile: (fileSHA256) => {
+    const url = `${API_BASE}/files/${fileSHA256}/download`;
+    window.open(url, '_blank');
+  },
+
+  // Get file content URL for preview
+  getFileContentURL: (fileSHA256) => {
+    return `${API_BASE}/files/${fileSHA256}/content`;
+  },
 };
 
 // P2P API
