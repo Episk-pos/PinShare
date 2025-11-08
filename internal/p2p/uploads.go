@@ -80,6 +80,7 @@ func ProcessUploads(folderPath string) {
 					metadata := store.BaseMetadata{
 						FileSHA256: strings.ToLower(fsha256),
 						IPFSCID:    strings.ToLower(fcid),
+						FileName:   f,
 						FileType:   strings.ToLower(fileExtension),
 					}
 

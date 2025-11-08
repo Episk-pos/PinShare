@@ -14,6 +14,7 @@ import (
 type BaseMetadata struct {
 	FileSHA256      string         `json:"fileSHA256"` // Primary key
 	IPFSCID         string         `json:"ipfsCID"`
+	FileName        string         `json:"fileName"`   // Original filename
 	FileType        string         `json:"fileType"`
 	LastUpdated     time.Time      `json:"lastUpdated"` // Timestamp for LWW or general record update
 	AddedAt         time.Time      `json:"addedAt"`
