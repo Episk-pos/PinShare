@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
 
-	"pinshare/internal/config"
 	"pinshare/internal/p2p"
 	"pinshare/internal/store"
 
@@ -49,13 +47,19 @@ func (s *Server) ListAllFiles(w http.ResponseWriter, r *http.Request) {
 		// Create copies of the time values to take their addresses.
 		lastUpdated := f.LastUpdated
 		addedAt := f.AddedAt
+		// Create copy of fileName to take its address
+		var fileName *string
+		if f.FileName != "" {
+			fileName = &f.FileName
+		}
 		apiFiles[i] = BaseMetadata{
 			FileSHA256:  f.FileSHA256,
 			IpfsCID:     f.IPFSCID,
+			FileName:    fileName,
 			FileType:    f.FileType,
 			LastUpdated: &lastUpdated,
 			AddedAt:     &addedAt,
-			// TODO: add remaining fields
+			// TODO: add remaining fields (tags, moderationVotes, banSet)
 		}
 	}
 
@@ -80,9 +84,15 @@ func (s *Server) GetFileBySHA256(w http.ResponseWriter, r *http.Request, fileSHA
 
 	lastUpdated := file.LastUpdated
 	addedAt := file.AddedAt
+	// Create copy of fileName to take its address
+	var fileName *string
+	if file.FileName != "" {
+		fileName = &file.FileName
+	}
 	apiFile := BaseMetadata{
 		FileSHA256:  file.FileSHA256,
 		IpfsCID:     file.IPFSCID,
+		FileName:    fileName,
 		FileType:    file.FileType,
 		LastUpdated: &lastUpdated,
 		AddedAt:     &addedAt,
@@ -253,43 +263,29 @@ func (s *Server) GetP2PStatus(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(status)
 }
 
-func (s *Server) ListTopicPeers(w http.ResponseWriter, r *http.Request) {
-	manager := p2p.GetPubSubManager()
-	if manager == nil {
-		writeError(w, http.StatusInternalServerError, "PubSub manager not initialized")
-		return
-	}
-
-	topicPeers := manager.ListPeers()
-	peerIDs := make([]string, len(topicPeers))
-	for i, p := range topicPeers {
-		peerIDs[i] = p.String()
-	}
-
-	config, _ := config.LoadConfig()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"topic":     config.MetadataTopicID,
-		"peerCount": len(topicPeers),
-		"peers":     peerIDs,
-	})
-}
-
-	topicPeers := manager.ListPeers()
-	peerIDs := make([]string, len(topicPeers))
-	for i, p := range topicPeers {
-		peerIDs[i] = p.String()
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"topic":     appconf.MetadataTopicID, // From global config
-		"peerCount": len(topicPeers),
-		"peers":     peerIDs,
-	})
-}
+// TODO: ListTopicPeers is currently disabled because p2p.GetPubSubManager() doesn't exist
+// func (s *Server) ListTopicPeers(w http.ResponseWriter, r *http.Request) {
+// 	manager := p2p.GetPubSubManager()
+// 	if manager == nil {
+// 		writeError(w, http.StatusInternalServerError, "PubSub manager not initialized")
+// 		return
+// 	}
+//
+// 	topicPeers := manager.ListPeers()
+// 	peerIDs := make([]string, len(topicPeers))
+// 	for i, p := range topicPeers {
+// 		peerIDs[i] = p.String()
+// 	}
+//
+// 	config, _ := config.LoadConfig()
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusOK)
+// 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+// 		"topic":     config.MetadataTopicID,
+// 		"peerCount": len(topicPeers),
+// 		"peers":     peerIDs,
+// 	})
+// }
 
 var p2pNodeInstance *host.Host
 
@@ -313,7 +309,8 @@ func Start(ctx context.Context, node host.Host) {
 	mux := http.NewServeMux()
 	mux.Handle("/", apiHandler)
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/p2p/topic-peers", server.ListTopicPeers)
+	// TODO: Disabled until p2p.GetPubSubManager() is implemented
+	// mux.HandleFunc("/p2p/topic-peers", server.ListTopicPeers)
 	mux.HandleFunc("/health", server.Health)
 	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 
