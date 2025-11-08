@@ -5,6 +5,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   ...(mode === 'development' && {
     server: {
+      port: 5174,
       proxy: {
         '/api': {
           target: process.env.VITE_PIN_SHARE_API || 'http://localhost:9090',
