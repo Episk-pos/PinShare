@@ -17,14 +17,14 @@ func ProcessUploads(folderPath string) {
 		ftype, err := psfs.ValidateFileType(folderPath + "/" + f)
 		if err != nil {
 			fmt.Println("[ERROR] func ValidateFileType() error " + string(err.Error()))
-			return
+			continue
 		}
 		if ftype {
 			fmt.Println("[INFO] File type valid for file: " + f)
 			fsha256, err := psfs.GetSHA256(folderPath + "/" + f)
 			if err != nil {
 				fmt.Println("[ERROR] func GetSha256() error " + string(err.Error()))
-				return
+				continue
 			}
 
 			var fresult bool
@@ -33,7 +33,7 @@ func ProcessUploads(folderPath string) {
 				_, exists := store.GlobalStore.GetFile(fsha256)
 				if exists {
 					fmt.Printf("[WARNING] File already exists in GlobalStore with SHA256: %s \n", fsha256)
-					return
+					continue
 				} else {
 
 					if appconfInstance.SecurityCapability > 0 {
@@ -45,7 +45,7 @@ func ProcessUploads(folderPath string) {
 							result, err = psfs.ClamScanFileClean(folderPath + "/" + f)
 							if err != nil {
 								fmt.Println("[ERROR] (ClamScanFileClean) " + string(err.Error()))
-								return
+								continue
 							}
 						}
 
@@ -56,7 +56,7 @@ func ProcessUploads(folderPath string) {
 								result, err = psfs.GetVirusTotalWSVerdictByHash(fsha256) // true == safe
 								if err != nil {
 									fmt.Println("[ERROR] (GetVirusTotalVerdictByHash) " + string(err.Error()))
-									return
+									continue
 								}
 							}
 						}
@@ -74,7 +74,7 @@ func ProcessUploads(folderPath string) {
 					fmt.Println("[INFO] File: " + f + " ++added to IPFS with CID: " + fcid)
 					fileExtension, err := psfs.GetExtension(f)
 					if err != nil {
-						return
+						continue
 					}
 
 					metadata := store.BaseMetadata{
@@ -87,7 +87,7 @@ func ProcessUploads(folderPath string) {
 					errgs := store.GlobalStore.AddFile(metadata)
 					if errgs != nil {
 						fmt.Printf("[ERROR] failed to add file to GlobalStore: %w \n", errgs)
-						return
+						continue
 					}
 					fmt.Println("[INFO] File: " + f + " ++added to GlobalStore with CID: " + fcid)
 					count = count + 1
