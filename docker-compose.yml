@@ -8,9 +8,10 @@ services:
     volumes:
       - ./data:/opt/pinshare/data
     ports:
-      - "5001:5001"  # IPFS API + Web UI (http://localhost:5001/webui)
-      - "8080:8080"  # IPFS Gateway (previews/content serving)
-      - "9090:9090"  # PinShare API (for UI integration)
+      - "9090:9090"  # PinShare API (required for UI)
+      # Optional IPFS ports (uncomment for telemetry/previews)
+      # - "5001:5001"  # IPFS API + Web UI (http://localhost:5001/webui)
+      # - "8080:8080"  # IPFS Gateway (previews/content serving)
       # Optional P2P ports for full network connectivity (add if needed)
       # - "4001:4001"
       # - "4001:4001/udp"
