@@ -76,22 +76,21 @@ Key configuration settings:
  
 #### Docker (Recommended)
  
-The Docker image bundles IPFS, so everything runs in one container. For minimal access (IPFS Web UI and Gateway), expose only essential ports:
+The Docker image bundles IPFS, so everything runs in one container. For minimal access (PinShare API for UI), expose only the essential port:
 
 ```bash
 docker run -d --name pinshare \
   -v $(pwd):/opt/pinshare/data \
-  -p 5001:5001 \
-  -p 8080:8080 \
+  -p 9090:9090 \
   ghcr.io/cypherpunk-labs/pinshare:latest
 ```
 
 This starts the IPFS daemon internally, waits for it to initialize, then launches PinShare. Access:
-- IPFS Web UI: http://localhost:5001/webui
-- IPFS Gateway: http://localhost:8080 (for content previews)
+- PinShare API: http://localhost:9090 (required for UI metadata browsing/pinning).
 
 Optional ports (uncomment for advanced use):
-- `-p 9090:9090` for PinShare API (e.g., custom tools).
+- `-p 5001:5001` for IPFS API (low-level telemetry; Kubo Web UI depends on this).
+- `-p 8080:8080` for IPFS Gateway (content previews in UI).
 - `-p 4001:4001 -p 4001:4001/udp` for IPFS Swarm (P2P connectivity).
 - `-p 50001:50001` for libp2p (metadata gossip).
 
@@ -102,32 +101,30 @@ To run just the IPFS daemon from the same image (e.g., for separate management o
 ```bash
 docker run -d --name ipfs-daemon \
   -v $(pwd)/ipfs-data:/data/ipfs \
-  -p 5001:5001 \
-  -p 8080:8080 \
   ghcr.io/cypherpunk-labs/pinshare:latest \
   /usr/local/bin/start_ipfs daemon
 ```
 
-This exposes the IPFS API (5001 with Web UI at http://localhost:5001/webui) and gateway (8080). Optional: Add `-p 4001:4001 -p 4001:4001/udp` for Swarm. Note: PinShare expects IPFS to be local; for a separate PinShare container, use host networking (`--network host`) or mount the IPFS API socket.
+Optional: Add `-p 5001:5001` for API/Kubo Web UI and `-p 8080:8080` for Gateway. Note: PinShare expects IPFS to be local; for a separate PinShare container, use host networking (`--network host`) or mount the IPFS API socket. The Kubo Web UI depends on the IPFS API (5001) for full functionality.
 
 #### Docker Compose (Full Stack with UI)
  
-For a complete setup including the React UI, use docker-compose.yml (includes PinShare + built UI):
+For a complete setup including the React UI, use docker-compose.yml (includes PinShare + built UI). The PinShare API (9090) is exposed by default for UI integration:
 
 ```bash
 docker-compose up -d --build
 ```
 
 This starts:
-- PinShare Web UI (http://localhost:5174 for browsing, searching PinShared content).
-- IPFS Kudo Web UI (http://localhost:5001 for lower-level IPFS telemetry).
+- PinShare with IPFS (port 9090 required for UI; 5001/8080 optional for IPFS features).
+- Static UI served on 5174 (http://localhost:5174 for browsing metadata and pinning).
 
 Access:
-- PinShare UI: http://localhost:5174
-- IPFS Web UI: http://localhost:5001/webui
-- IPFS Gateway: http://localhost:8080
+- PinShare UI: http://localhost:5174 (requires API on 9090).
+- IPFS Web UI: http://localhost:5001/webui (optional for low-level IPFS telemetry; depends on 5001).
+- IPFS Gateway: http://localhost:8080 (optional for content previews in UI).
 
-Optional: Uncomment P2P ports in compose for network connectivity. Logs: `docker-compose logs -f`.
+Optional: Uncomment 5001/8080 and P2P ports in compose for IPFS features. Logs: `docker-compose logs -f`. Note: The Kubo Web UI depends on the IPFS API (5001) for full functionality.
 
 #### Non-Docker
  
