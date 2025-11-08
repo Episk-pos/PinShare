@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ForceGraph2D } from 'react-force-graph'
+import ForceGraph2D from 'react-force-graph-2d'
 import { pinshareApi } from '../services/api'
 import { Network, Users, Activity, Server } from 'lucide-react'
 
