@@ -19,7 +19,7 @@ function Browse() {
     let results = files || []
     if (searchTerm) {
       const fuse = new Fuse(results, {
-        keys: ['fileType', 'ipfsCID', 'fileSHA256'],
+        keys: ['fileName', 'fileType', 'ipfsCID', 'fileSHA256'],
         threshold: 0.3,
       })
       results = fuse.search(searchTerm).map(result => result.item)
@@ -62,8 +62,7 @@ function Browse() {
         <table className="min-w-full divide-y divide-gray-200 bg-white">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SHA256 (Short)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type / Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Mod Votes</th>
@@ -74,7 +73,7 @@ function Browse() {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredFiles.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                   No files found. Connect to peers to receive metadata.
                 </td>
               </tr>

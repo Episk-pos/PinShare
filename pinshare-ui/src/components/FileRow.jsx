@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExternalLink, Download, Pin, AlertTriangle, Tag } from 'lucide-react'
+import { ExternalLink, Download, Pin, AlertTriangle, Tag, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Badge } from './Badge.jsx'
 
@@ -14,11 +14,11 @@ function FileRow({ file }) {
     return 'Banned'
   }
   const handlePreview = () => {
-    window.open(`${GATEWAY_BASE}${file.ipfsCID}`, '_blank')
+    window.open(`${GATEWAY_BASE}/${file.ipfsCID}`, '_blank')
   }
 
   const handleDownload = () => {
-    window.open(`${GATEWAY_BASE}${file.ipfsCID}`, '_blank')
+    window.open(`${GATEWAY_BASE}/${file.ipfsCID}`, '_blank')
   }
 
   const handlePin = async () => {
@@ -36,13 +36,15 @@ function FileRow({ file }) {
     }
   }
 
+  const handleCopyCID = () => {
+    navigator.clipboard.writeText(file.ipfsCID)
+    toast.success('CID copied to clipboard!')
+  }
+
   return (
     <tr className="hover:bg-gray-50">
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-        {file.ipfsCID ? file.ipfsCID.substring(0, 32) + '...' : 'N/A'}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {file.fileSHA256 ? file.fileSHA256.substring(0, 16) + '...' : 'N/A'}
+      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+        {file.fileName || 'Unknown file'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center space-x-2">
@@ -109,6 +111,13 @@ function FileRow({ file }) {
             title="Pin to local IPFS"
           >
             <Pin className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleCopyCID}
+            className="text-gray-600 hover:text-gray-900 flex items-center space-x-1"
+            title="Copy CID to clipboard"
+          >
+            <Copy className="w-4 h-4" />
           </button>
         </div>
       </td>
