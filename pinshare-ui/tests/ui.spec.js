@@ -70,4 +70,33 @@ test.describe('PinShare UI', () => {
     // Check the page title
     await expect(page.locator('h2:has-text("Network Visualization")')).toBeVisible();
   });
+
+  test('Browse page - should show File Name column', async ({ page }) => {
+    await page.goto(UI_URL);
+
+    // Check that File Name column header exists
+    await expect(page.locator('th:has-text("File Name")')).toBeVisible();
+
+    // Check that old CID/SHA256 columns are removed
+    const cidHeader = await page.locator('th:has-text("CID")').count();
+    const sha256Header = await page.locator('th:has-text("SHA256")').count();
+    expect(cidHeader).toBe(0);
+    expect(sha256Header).toBe(0);
+  });
+
+  test('Browse page - should have Copy CID button when files exist', async ({ page, request }) => {
+    // First check if there are any files
+    const response = await request.get(`${UI_URL}/api/files`);
+
+    if (response.ok()) {
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        await page.goto(UI_URL);
+
+        // Should have copy button with title
+        await expect(page.locator('button[title="Copy CID to clipboard"]').first()).toBeVisible();
+      }
+    }
+  });
 });
