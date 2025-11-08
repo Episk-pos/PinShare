@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import Browse from './pages/Browse.jsx'
 import NetworkDashboard from './pages/Network.jsx'
+import NetworkGraph from './pages/NetworkGraph.jsx'
+import StatsHeader from './components/StatsHeader.jsx'
 import './index.css'
 
 const queryClient = new QueryClient()
@@ -21,10 +23,14 @@ function App() {
                   <h1 className="text-3xl font-bold text-gray-900">PinShare Dashboard</h1>
                   <p className="mt-1 text-sm text-gray-500">Browse, search, and manage shared files from the P2P network.</p>
                 </div>
-                <nav className="space-x-4">
-                  <Link to="/" className="text-blue-600 hover:text-blue-800">Browse</Link>
-                  <Link to="/network" className="text-blue-600 hover:text-blue-800">Network</Link>
-                </nav>
+                <div className="flex items-center space-x-8">
+                  <StatsHeader />
+                  <nav className="flex items-center space-x-4">
+                    <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium">Browse</Link>
+                    <Link to="/network" className="text-blue-600 hover:text-blue-800 font-medium">Network Info</Link>
+                    <Link to="/network-graph" className="text-blue-600 hover:text-blue-800 font-medium">Network Graph</Link>
+                  </nav>
+                </div>
               </div>
             </div>
           </header>
@@ -32,7 +38,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Browse />} />
               <Route path="/network" element={<NetworkDashboard />} />
-              {/* Add more routes as needed */}
+              <Route path="/network-graph" element={<NetworkGraph />} />
             </Routes>
           </main>
           <Toaster position="top-right" />
