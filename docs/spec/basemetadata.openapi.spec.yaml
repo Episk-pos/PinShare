@@ -340,10 +340,10 @@ components:
           type: string
           description: The MIME type of the file.
           example: 'application/pdf'
-        # fileName:
-        #   type: string
-        #   description: LWW-Register for the original file name.
-        #   example: "Nagel IE163 Direct Electrical Production from LENR.pdf"
+        fileName:
+          type: string
+          description: LWW-Register for the original file name.
+          example: "Nagel IE163 Direct Electrical Production from LENR.pdf"
         # date:
         #   type: string
         #   description: LWW-Register for a relevant date (e.g., publication).
@@ -436,10 +436,10 @@ components:
           type: string
           description: The MIME type of the file.
           example: 'application/pdf'
-        # fileName:
-        #   type: string
-        #   description: LWW-Register for the original file name.
-        #   example: "Nagel IE163 Direct Electrical Production from LENR.pdf"
+        fileName:
+          type: string
+          description: LWW-Register for the original file name.
+          example: "Nagel IE163 Direct Electrical Production from LENR.pdf"
         # date:
         #   type: string
         #   description: LWW-Register for a relevant date (e.g., publication).
