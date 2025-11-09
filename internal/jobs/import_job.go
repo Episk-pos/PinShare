@@ -182,6 +182,15 @@ func (j *ImportJob) Execute(ctx context.Context) error {
 		return fmt.Errorf("failed to complete job: %w", err)
 	}
 
+	// Persist all imported file metadata to disk
+	if completedCount > 0 {
+		if err := store.GlobalStore.Save("metadata.json"); err != nil {
+			log.Printf("[ERROR] Failed to save metadata to disk: %v", err)
+		} else {
+			log.Printf("[INFO] Metadata saved to disk for %d imported files", completedCount)
+		}
+	}
+
 	log.Printf("[INFO] Job %s completed: %d succeeded, %d failed", j.jobID, completedCount, failedCount)
 	return nil
 }
