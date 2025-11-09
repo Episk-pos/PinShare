@@ -374,24 +374,24 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 		log.Println("[INFO] Registering Google Drive import API routes")
 
 		// OAuth routes
-		mux.HandleFunc("/api/google-drive/authorize", gdriveServer.AuthorizeRequest)
-		mux.HandleFunc("/api/google-drive/callback", gdriveServer.CallbackRequest)
-		mux.HandleFunc("/api/google-drive/set-token", gdriveServer.SetToken)
-		mux.HandleFunc("/api/google-drive/auth-status", gdriveServer.GetAuthStatus)
-		mux.HandleFunc("/api/google-drive/revoke", gdriveServer.RevokeAccess)
+		mux.HandleFunc("/google-drive/authorize", gdriveServer.AuthorizeRequest)
+		mux.HandleFunc("/google-drive/callback", gdriveServer.CallbackRequest)
+		mux.HandleFunc("/google-drive/set-token", gdriveServer.SetToken)
+		mux.HandleFunc("/google-drive/auth-status", gdriveServer.GetAuthStatus)
+		mux.HandleFunc("/google-drive/revoke", gdriveServer.RevokeAccess)
 
 		// Drive operations routes
-		mux.HandleFunc("/api/google-drive/folders", gdriveServer.ListFolders)
-		mux.HandleFunc("/api/google-drive/preview-import", gdriveServer.PreviewImport)
-		mux.HandleFunc("/api/google-drive/import", gdriveServer.StartImport)
-		mux.HandleFunc("/api/google-drive/import/history", gdriveServer.GetImportHistory)
+		mux.HandleFunc("/google-drive/folders", gdriveServer.ListFolders)
+		mux.HandleFunc("/google-drive/preview-import", gdriveServer.PreviewImport)
+		mux.HandleFunc("/google-drive/import", gdriveServer.StartImport)
+		mux.HandleFunc("/google-drive/import/history", gdriveServer.GetImportHistory)
 
 		// Job status route (pattern matching for job ID)
-		mux.HandleFunc("/api/google-drive/import/", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/google-drive/import/", func(w http.ResponseWriter, r *http.Request) {
 			// Extract job ID from path
 			path := r.URL.Path
-			if len(path) > len("/api/google-drive/import/") {
-				jobID := path[len("/api/google-drive/import/"):]
+			if len(path) > len("/google-drive/import/") {
+				jobID := path[len("/google-drive/import/"):]
 				// Check if it ends with /status
 				if len(jobID) > 7 && jobID[len(jobID)-7:] == "/status" {
 					jobID = jobID[:len(jobID)-7]

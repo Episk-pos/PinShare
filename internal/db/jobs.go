@@ -263,6 +263,7 @@ func (db *DB) GetImportFilesByJob(jobID string) ([]*ImportFile, error) {
 	var files []*ImportFile
 	for rows.Next() {
 		file := &ImportFile{}
+		var sha256Hash, ipfsCID, errorMessage sql.NullString
 		err := rows.Scan(
 			&file.ID,
 			&file.JobID,
@@ -271,9 +272,9 @@ func (db *DB) GetImportFilesByJob(jobID string) ([]*ImportFile, error) {
 			&file.FileSize,
 			&file.Status,
 			&file.Progress,
-			&file.SHA256Hash,
-			&file.IPFSCID,
-			&file.ErrorMessage,
+			&sha256Hash,
+			&ipfsCID,
+			&errorMessage,
 			&file.RetryCount,
 			&file.StartedAt,
 			&file.CompletedAt,
@@ -283,6 +284,18 @@ func (db *DB) GetImportFilesByJob(jobID string) ([]*ImportFile, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan import file: %w", err)
 		}
+
+		// Convert sql.NullString to regular strings
+		if sha256Hash.Valid {
+			file.SHA256Hash = sha256Hash.String
+		}
+		if ipfsCID.Valid {
+			file.IPFSCID = ipfsCID.String
+		}
+		if errorMessage.Valid {
+			file.ErrorMessage = errorMessage.String
+		}
+
 		files = append(files, file)
 	}
 

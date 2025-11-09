@@ -1,6 +1,7 @@
 package store
 
 import (
+	"sort"
 	"sync"
 	"time"
 )
@@ -97,7 +98,7 @@ func (usm *UploadStatusManager) GetStatus(fileName string) (*UploadStatus, bool)
 	return status, exists
 }
 
-// GetAllStatuses returns all upload statuses
+// GetAllStatuses returns all upload statuses sorted by start time (most recent first)
 func (usm *UploadStatusManager) GetAllStatuses() []*UploadStatus {
 	usm.mu.RLock()
 	defer usm.mu.RUnlock()
@@ -106,10 +107,16 @@ func (usm *UploadStatusManager) GetAllStatuses() []*UploadStatus {
 	for _, status := range usm.statuses {
 		statuses = append(statuses, status)
 	}
+
+	// Sort by StartedAt in descending order (most recent first)
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].StartedAt.After(statuses[j].StartedAt)
+	})
+
 	return statuses
 }
 
-// GetActiveStatuses returns only uploads that are currently in progress
+// GetActiveStatuses returns only uploads that are currently in progress, sorted by start time (most recent first)
 func (usm *UploadStatusManager) GetActiveStatuses() []*UploadStatus {
 	usm.mu.RLock()
 	defer usm.mu.RUnlock()
@@ -120,6 +127,12 @@ func (usm *UploadStatusManager) GetActiveStatuses() []*UploadStatus {
 			statuses = append(statuses, status)
 		}
 	}
+
+	// Sort by StartedAt in descending order (most recent first)
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].StartedAt.After(statuses[j].StartedAt)
+	})
+
 	return statuses
 }
 

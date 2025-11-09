@@ -190,9 +190,13 @@ func (j *ImportJob) Execute(ctx context.Context) error {
 func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile) (int64, error) {
 	log.Printf("[INFO] Processing file: %s (ID: %s, Size: %d)", driveFile.Name, driveFile.ID, driveFile.Size)
 
+	// Start tracking in status manager
+	store.StatusManager.StartUpload(driveFile.Name)
+
 	// Find the import file record
 	files, err := j.database.GetImportFilesByJob(j.jobID)
 	if err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Failed to get import files: %v", err))
 		return 0, fmt.Errorf("failed to get import files: %w", err)
 	}
 
@@ -205,11 +209,14 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	}
 
 	if importFile == nil {
+		store.StatusManager.FailUpload(driveFile.Name, "Import file record not found")
 		return 0, fmt.Errorf("import file record not found for Drive file %s", driveFile.ID)
 	}
 
 	// 1. Download from Google Drive
+	store.StatusManager.UpdateStatus(driveFile.Name, "downloading", 10, "")
 	if err := j.database.UpdateImportFileStatus(importFile.ID, db.FileStatusDownloading, 10); err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Status update failed: %v", err))
 		return 0, fmt.Errorf("failed to update status: %w", err)
 	}
 
@@ -220,35 +227,43 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	bytesDownloaded, err := j.driveClient.DownloadFile(driveFile.ID, tempFilePath)
 	if err != nil {
 		j.database.FailImportFile(importFile.ID, fmt.Sprintf("Download failed: %v", err))
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Download failed: %v", err))
 		return 0, fmt.Errorf("failed to download file: %w", err)
 	}
 
 	log.Printf("[INFO] Downloaded %s (%d bytes)", driveFile.Name, bytesDownloaded)
 
 	// 2. Compute SHA256 hash
+	store.StatusManager.UpdateStatus(driveFile.Name, "validating", 30, "")
 	if err := j.database.UpdateImportFileStatus(importFile.ID, db.FileStatusHashing, 30); err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, "Status update failed")
 		return 0, fmt.Errorf("failed to update status: %w", err)
 	}
 
 	sha256Hash, err := psfs.GetSHA256(tempFilePath)
 	if err != nil {
 		j.database.FailImportFile(importFile.ID, fmt.Sprintf("Hashing failed: %v", err))
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Hashing failed: %v", err))
 		return 0, fmt.Errorf("failed to compute hash: %w", err)
 	}
 
 	log.Printf("[INFO] Computed SHA256: %s", sha256Hash)
+	store.StatusManager.UpdateStatus(driveFile.Name, "validating", 40, sha256Hash)
 
 	// Check for duplicates if option is enabled
 	if j.options.SkipDuplicates {
 		if _, exists := store.GlobalStore.GetFile(strings.ToLower(sha256Hash)); exists {
 			log.Printf("[INFO] Skipping duplicate file: %s (hash: %s)", driveFile.Name, sha256Hash)
 			j.database.CompleteImportFile(importFile.ID, sha256Hash, "")
+			store.StatusManager.CompleteUpload(driveFile.Name)
 			return bytesDownloaded, nil
 		}
 	}
 
 	// 3. Security scanning
+	store.StatusManager.UpdateStatus(driveFile.Name, "scanning", 50, sha256Hash)
 	if err := j.database.UpdateImportFileStatus(importFile.ID, db.FileStatusScanning, 50); err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, "Status update failed")
 		return 0, fmt.Errorf("failed to update status: %w", err)
 	}
 
@@ -256,6 +271,7 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	validType, err := psfs.ValidateFileType(tempFilePath)
 	if err != nil || !validType {
 		j.database.FailImportFile(importFile.ID, "Invalid file type")
+		store.StatusManager.FailUpload(driveFile.Name, "Invalid file type")
 		return 0, fmt.Errorf("invalid file type: %w", err)
 	}
 
@@ -263,31 +279,38 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	isClean, err := psfs.ClamScanFileClean(tempFilePath)
 	if err != nil {
 		j.database.FailImportFile(importFile.ID, fmt.Sprintf("Security scan failed: %v", err))
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Security scan failed: %v", err))
 		return 0, fmt.Errorf("security scan failed: %w", err)
 	}
 
 	if !isClean {
 		j.database.FailImportFile(importFile.ID, "Security scan detected malware")
+		store.StatusManager.FailUpload(driveFile.Name, "Security scan detected malware")
 		return 0, fmt.Errorf("security scan failed for file %s", driveFile.Name)
 	}
 
 	log.Printf("[INFO] Security scan passed for %s", driveFile.Name)
 
 	// 4. Upload to IPFS
+	store.StatusManager.UpdateStatus(driveFile.Name, "uploading", 70, sha256Hash)
 	if err := j.database.UpdateImportFileStatus(importFile.ID, db.FileStatusUploading, 70); err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, "Status update failed")
 		return 0, fmt.Errorf("failed to update status: %w", err)
 	}
 
 	ipfsCID := psfs.AddFileIPFS(tempFilePath)
 	if ipfsCID == "" {
 		j.database.FailImportFile(importFile.ID, "IPFS upload failed")
+		store.StatusManager.FailUpload(driveFile.Name, "IPFS upload failed")
 		return 0, fmt.Errorf("failed to add file to IPFS")
 	}
 
 	log.Printf("[INFO] Added to IPFS with CID: %s", ipfsCID)
 
 	// 5. Store metadata
+	store.StatusManager.UpdateStatus(driveFile.Name, "storing", 90, sha256Hash)
 	if err := j.database.UpdateImportFileStatus(importFile.ID, db.FileStatusUploading, 90); err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, "Status update failed")
 		return 0, fmt.Errorf("failed to update status: %w", err)
 	}
 
@@ -300,6 +323,7 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	metadata := store.BaseMetadata{
 		FileSHA256:  strings.ToLower(sha256Hash),
 		IPFSCID:     strings.ToLower(ipfsCID),
+		FileName:    driveFile.Name,
 		FileType:    strings.ToLower(fileExtension),
 		AddedAt:     time.Now(),
 		LastUpdated: time.Now(),
@@ -307,6 +331,7 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 
 	if err := store.GlobalStore.AddFile(metadata); err != nil {
 		j.database.FailImportFile(importFile.ID, fmt.Sprintf("Metadata storage failed: %v", err))
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Metadata storage failed: %v", err))
 		return 0, fmt.Errorf("failed to store metadata: %w", err)
 	}
 
@@ -315,8 +340,12 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 
 	// Mark file as completed
 	if err := j.database.CompleteImportFile(importFile.ID, sha256Hash, ipfsCID); err != nil {
+		store.StatusManager.FailUpload(driveFile.Name, "Failed to mark as completed")
 		return 0, fmt.Errorf("failed to mark file as completed: %w", err)
 	}
+
+	// Mark as completed in status manager
+	store.StatusManager.CompleteUpload(driveFile.Name)
 
 	log.Printf("[INFO] Successfully imported %s", driveFile.Name)
 	return bytesDownloaded, nil

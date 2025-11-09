@@ -317,9 +317,22 @@ func (s *GDriveServer) ListFolders(w http.ResponseWriter, r *http.Request) {
 	googleID := r.URL.Query().Get("google_id")
 	folderID := r.URL.Query().Get("path")
 
+	// Support single-user mode - if google_id not provided, use the only user
 	if googleID == "" {
-		writeError(w, http.StatusBadRequest, "missing google_id parameter")
-		return
+		users, err := s.database.GetAllUsers()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get users: %v", err))
+			return
+		}
+		if len(users) == 0 {
+			writeError(w, http.StatusUnauthorized, "no authenticated users found")
+			return
+		}
+		if len(users) > 1 {
+			writeError(w, http.StatusBadRequest, "multiple users found, google_id parameter required")
+			return
+		}
+		googleID = users[0].GoogleID
 	}
 
 	// Get user and create Drive client
@@ -384,8 +397,27 @@ func (s *GDriveServer) PreviewImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Support single-user mode
+	googleID := req.GoogleID
+	if googleID == "" {
+		users, err := s.database.GetAllUsers()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get users: %v", err))
+			return
+		}
+		if len(users) == 0 {
+			writeError(w, http.StatusUnauthorized, "no authenticated users found")
+			return
+		}
+		if len(users) > 1 {
+			writeError(w, http.StatusBadRequest, "multiple users found, googleId parameter required")
+			return
+		}
+		googleID = users[0].GoogleID
+	}
+
 	// Get Drive client
-	_, driveClient, err := s.getUserAndClient(req.GoogleID)
+	_, driveClient, err := s.getUserAndClient(googleID)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, fmt.Sprintf("failed to authenticate: %v", err))
 		return
@@ -472,8 +504,27 @@ func (s *GDriveServer) StartImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Support single-user mode
+	googleID := req.GoogleID
+	if googleID == "" {
+		users, err := s.database.GetAllUsers()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get users: %v", err))
+			return
+		}
+		if len(users) == 0 {
+			writeError(w, http.StatusUnauthorized, "no authenticated users found")
+			return
+		}
+		if len(users) > 1 {
+			writeError(w, http.StatusBadRequest, "multiple users found, googleId parameter required")
+			return
+		}
+		googleID = users[0].GoogleID
+	}
+
 	// Get user and Drive client
-	user, driveClient, err := s.getUserAndClient(req.GoogleID)
+	user, driveClient, err := s.getUserAndClient(googleID)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, fmt.Sprintf("failed to authenticate: %v", err))
 		return
@@ -588,9 +639,23 @@ func (s *GDriveServer) GetImportHistory(w http.ResponseWriter, r *http.Request) 
 	log.Println("[INFO] GET /api/google-drive/import/history")
 
 	googleID := r.URL.Query().Get("google_id")
+
+	// Support single-user mode - if google_id not provided, use the only user
 	if googleID == "" {
-		writeError(w, http.StatusBadRequest, "missing google_id parameter")
-		return
+		users, err := s.database.GetAllUsers()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get users: %v", err))
+			return
+		}
+		if len(users) == 0 {
+			writeError(w, http.StatusUnauthorized, "no authenticated users found")
+			return
+		}
+		if len(users) > 1 {
+			writeError(w, http.StatusBadRequest, "multiple users found, google_id parameter required")
+			return
+		}
+		googleID = users[0].GoogleID
 	}
 
 	// Parse limit and offset
