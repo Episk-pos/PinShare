@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   pinshare:
     build:
@@ -14,13 +12,17 @@ services:
       - "9090:9090"  # PinShare API (required for UI)
       - "8080:8080"  # IPFS Gateway (previews/content serving)
       # Optional IPFS ports (uncomment for telemetry/previews)
-      # - "5001:5001"  # IPFS API + Web UI (http://localhost:5001/webui)
+      - "5001:5001"  # IPFS API + Web UI (http://localhost:5001/webui)
       # Optional P2P ports for full network connectivity (add if needed)
       # - "4001:4001"
       # - "4001:4001/udp"
       # - "50001:50001"
     environment:
       - VT_TOKEN=REDACTED  # Set your VirusTotal token if using API path
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost:9090/api/google-drive/callback}
+      - PS_ENCRYPTION_KEY=${PS_ENCRYPTION_KEY:-12345678901234567890123456789012}  # 32-byte key for token encryption
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9090/health"]  # Add /health endpoint if needed, or use IPFS check
@@ -47,6 +49,20 @@ services:
       - VITE_PIN_SHARE_API=http://pinshare:9090
       - VITE_IPFS_API=http://pinshare:5001
       - VITE_GATEWAY_BASE=http://localhost:8080/ipfs  # Host gateway for previews
+    restart: unless-stopped
+
+  oauth-broker:
+    build:
+      context: ./oauth-broker
+      dockerfile: Dockerfile
+    container_name: pinshare-oauth-broker
+    ports:
+      - "8888:8888"  # OAuth Broker (http://localhost:8888)
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - REDIRECT_URL=http://localhost:8888/callback
+      - PORT=8888
     restart: unless-stopped
 
 networks:

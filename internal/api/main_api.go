@@ -376,6 +376,7 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 		// OAuth routes
 		mux.HandleFunc("/api/google-drive/authorize", gdriveServer.AuthorizeRequest)
 		mux.HandleFunc("/api/google-drive/callback", gdriveServer.CallbackRequest)
+		mux.HandleFunc("/api/google-drive/set-token", gdriveServer.SetToken)
 		mux.HandleFunc("/api/google-drive/auth-status", gdriveServer.GetAuthStatus)
 		mux.HandleFunc("/api/google-drive/revoke", gdriveServer.RevokeAccess)
 

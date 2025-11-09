@@ -156,19 +156,100 @@ func (s *GDriveServer) CallbackRequest(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// SetToken handles token submission from OAuth broker
+func (s *GDriveServer) SetToken(w http.ResponseWriter, r *http.Request) {
+	log.Println("[INFO] POST /api/google-drive/set-token")
+
+	var token oauth2.Token
+	if err := json.NewDecoder(r.Body).Decode(&token); err != nil {
+		log.Printf("[ERROR] Failed to decode token: %v", err)
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid token format: %v", err))
+		return
+	}
+
+	// Validate token by getting user info from Google
+	ctx := context.Background()
+	client := s.oauthManager.GetClient(ctx, &token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		log.Printf("[ERROR] Failed to validate token with Google: %v", err)
+		writeError(w, http.StatusUnauthorized, fmt.Sprintf("invalid token: %v", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	var userInfo struct {
+		ID    string `json:"id"`
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		log.Printf("[ERROR] Failed to parse user info: %v", err)
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to parse user info: %v", err))
+		return
+	}
+
+	log.Printf("[DEBUG] Received user info - ID: %s, Email: %s", userInfo.ID, userInfo.Email)
+
+	// Store user and tokens in database
+	_, err = s.database.CreateOrUpdateUser(
+		userInfo.ID,
+		userInfo.Email,
+		token.AccessToken,
+		token.RefreshToken,
+		token.Expiry,
+	)
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to store user in database: %v", err)
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to store user: %v", err))
+		return
+	}
+
+	log.Printf("[INFO] Token saved for user: %s (%s)", userInfo.Email, userInfo.ID)
+
+	response := map[string]interface{}{
+		"success": true,
+		"user": map[string]string{
+			"googleId": userInfo.ID,
+			"email":    userInfo.Email,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // GetAuthStatus returns the authentication status for a user
 func (s *GDriveServer) GetAuthStatus(w http.ResponseWriter, r *http.Request) {
 	log.Println("[INFO] GET /api/google-drive/auth-status")
 
-	// For now, we'll use the Google ID from query parameter
-	// In production, this should come from session/JWT
+	// Check for google_id query parameter (optional)
+	// If not provided, return the first user (single-user mode for OAuth broker)
 	googleID := r.URL.Query().Get("google_id")
-	if googleID == "" {
-		writeError(w, http.StatusBadRequest, "missing google_id parameter")
-		return
+
+	var user *db.User
+	var err error
+
+	if googleID != "" {
+		user, err = s.database.GetUserByGoogleID(googleID)
+	} else {
+		// Get any authenticated user (OAuth broker flow - single user mode)
+		users, err := s.database.GetAllUsers()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get users: %v", err))
+			return
+		}
+		if len(users) > 0 {
+			user = users[0]
+		} else {
+			// No users authenticated
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]bool{"authenticated": false})
+			return
+		}
 	}
 
-	user, err := s.database.GetUserByGoogleID(googleID)
 	if err != nil {
 		if err == db.ErrUserNotFound {
 			w.Header().Set("Content-Type", "application/json")

@@ -244,3 +244,41 @@ func (db *DB) DeleteUser(googleID string) error {
 func (user *User) IsTokenExpired() bool {
 	return time.Now().After(user.TokenExpiry)
 }
+
+// GetAllUsers retrieves all users from the database
+func (db *DB) GetAllUsers() ([]*User, error) {
+	rows, err := db.Query(`
+		SELECT id, google_id, email, encrypted_access_token, encrypted_refresh_token, token_expiry, created_at, updated_at
+		FROM users
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*User
+	for rows.Next() {
+		user := &User{}
+		err := rows.Scan(
+			&user.ID,
+			&user.GoogleID,
+			&user.Email,
+			&user.EncryptedAccessToken,
+			&user.EncryptedRefreshToken,
+			&user.TokenExpiry,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating users: %w", err)
+	}
+
+	return users, nil
+}

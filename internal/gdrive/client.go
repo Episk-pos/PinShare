@@ -75,16 +75,11 @@ func (c *Client) ListFiles(folderID string, pageSize int) ([]*DriveFile, error) 
 
 	var files []*DriveFile
 	for _, f := range fileList.Files {
-		size := int64(0)
-		if f.Size != nil {
-			size = *f.Size
-		}
-
 		files = append(files, &DriveFile{
 			ID:           f.Id,
 			Name:         f.Name,
 			MimeType:     f.MimeType,
-			Size:         size,
+			Size:         f.Size,
 			ModifiedTime: f.ModifiedTime,
 			Parents:      f.Parents,
 			IsFolder:     f.MimeType == MimeTypeFolder,
@@ -104,16 +99,11 @@ func (c *Client) GetFile(fileID string) (*DriveFile, error) {
 		return nil, fmt.Errorf("failed to get file: %w", err)
 	}
 
-	size := int64(0)
-	if f.Size != nil {
-		size = *f.Size
-	}
-
 	return &DriveFile{
 		ID:           f.Id,
 		Name:         f.Name,
 		MimeType:     f.MimeType,
-		Size:         size,
+		Size:         f.Size,
 		ModifiedTime: f.ModifiedTime,
 		Parents:      f.Parents,
 		IsFolder:     f.MimeType == MimeTypeFolder,

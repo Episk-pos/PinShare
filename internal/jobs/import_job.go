@@ -260,13 +260,13 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	}
 
 	// Run security scan
-	secResult, err := psfs.SecCheck(tempFilePath, sha256Hash)
+	isClean, err := psfs.ClamScanFileClean(tempFilePath)
 	if err != nil {
 		j.database.FailImportFile(importFile.ID, fmt.Sprintf("Security scan failed: %v", err))
 		return 0, fmt.Errorf("security scan failed: %w", err)
 	}
 
-	if !secResult {
+	if !isClean {
 		j.database.FailImportFile(importFile.ID, "Security scan detected malware")
 		return 0, fmt.Errorf("security scan failed for file %s", driveFile.Name)
 	}

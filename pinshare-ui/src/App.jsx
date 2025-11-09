@@ -7,6 +7,7 @@ import Browse from './pages/Browse.jsx'
 import NetworkDashboard from './pages/Network.jsx'
 import NetworkGraph from './pages/NetworkGraph.jsx'
 import UploadStatus from './pages/UploadStatus.jsx'
+import GoogleDriveImport from './pages/GoogleDriveImport.jsx'
 import StatsHeader from './components/StatsHeader.jsx'
 import './index.css'
 
@@ -29,6 +30,7 @@ function App() {
                   <nav className="flex items-center space-x-4">
                     <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium">Browse</Link>
                     <Link to="/upload-status" className="text-blue-600 hover:text-blue-800 font-medium">Upload Status</Link>
+                    <Link to="/import/google-drive" className="text-blue-600 hover:text-blue-800 font-medium">Import</Link>
                     <Link to="/network" className="text-blue-600 hover:text-blue-800 font-medium">Network Info</Link>
                     <Link to="/network-graph" className="text-blue-600 hover:text-blue-800 font-medium">Network Graph</Link>
                   </nav>
@@ -40,6 +42,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Browse />} />
               <Route path="/upload-status" element={<UploadStatus />} />
+              <Route path="/import/google-drive" element={<GoogleDriveImport />} />
               <Route path="/network" element={<NetworkDashboard />} />
               <Route path="/network-graph" element={<NetworkGraph />} />
             </Routes>
