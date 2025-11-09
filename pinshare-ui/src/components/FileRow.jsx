@@ -6,7 +6,48 @@ import { Badge } from './Badge.jsx'
 const GATEWAY_BASE = import.meta.env.VITE_GATEWAY_BASE || 'http://localhost:8080/ipfs'
 const IPFS_API_BASE = import.meta.env.VITE_IPFS_API_BASE || 'http://localhost:5001/api/v0'
 
+// Helper function to highlight matched text
+const HighlightedText = ({ text, matches = [] }) => {
+  if (!matches || matches.length === 0) {
+    return <>{text || 'Unknown'}</>
+  }
+
+  // Sort indices by start position
+  const sortedIndices = [...matches].sort((a, b) => a[0] - b[0])
+
+  const parts = []
+  let lastIndex = 0
+
+  sortedIndices.forEach(([start, end]) => {
+    // Add non-highlighted text before match
+    if (start > lastIndex) {
+      parts.push(<span key={`text-${lastIndex}`}>{text.substring(lastIndex, start)}</span>)
+    }
+    // Add highlighted match
+    parts.push(
+      <mark key={`match-${start}`} className="bg-yellow-200 font-semibold">
+        {text.substring(start, end + 1)}
+      </mark>
+    )
+    lastIndex = end + 1
+  })
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(<span key={`text-${lastIndex}`}>{text.substring(lastIndex)}</span>)
+  }
+
+  return <>{parts}</>
+}
+
 function FileRow({ file }) {
+  // Extract match indices for fileName from Fuse.js matches
+  const getMatchIndices = (field) => {
+    if (!file._matches) return []
+    const match = file._matches.find(m => m.key === field)
+    return match ? match.indices : []
+  }
+
   const getBanLabel = (banSet) => {
     if (banSet === 3) return 'Policy Violation'
     if (banSet === 6) return 'Indecent Content'
@@ -44,7 +85,7 @@ function FileRow({ file }) {
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-6 py-4 text-sm font-medium text-gray-900">
-        {file.fileName || 'Unknown file'}
+        <HighlightedText text={file.fileName || 'Unknown file'} matches={getMatchIndices('fileName')} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center space-x-2">

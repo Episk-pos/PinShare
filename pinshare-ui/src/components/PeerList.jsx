@@ -1,29 +1,33 @@
 import React from 'react'
-import { Badge } from '../components/Badge.jsx'  // Optional styled badge
 
-function PeerList({ peers, topicPeers }) {
-  const allPeers = Array.isArray(topicPeers) ? topicPeers : []
-  const peerCount = peers || 0
+function PeerList({ peers }) {
+  const peerList = Array.isArray(peers) ? peers : []
 
   return (
     <div>
-      <p className="text-sm text-gray-600 mb-4">Total P2P Peers: <span className="font-semibold">{peerCount}</span></p>
-      <p className="text-sm text-gray-600 mb-4">Topic Subscribers: <span className="font-semibold">{allPeers.length}</span></p>
-      
-      {allPeers.length > 0 ? (
-        <ul className="space-y-2">
-          {allPeers.slice(0, 10).map((peer, index) => (  // Limit to 10 for brevity
-            <li key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-              <span className="text-sm font-mono text-gray-900">{peer.substring(0, 16)}...</span>
-              <Badge variant="green">Subscribed</Badge>
-            </li>
-          ))}
-          {allPeers.length > 10 && (
-            <li className="text-sm text-gray-500">... and {allPeers.length - 10} more</li>
-          )}
-        </ul>
+      {peerList.length > 0 ? (
+        <div className="space-y-2">
+          {peerList.map((peer, index) => {
+            // Peers are returned as strings (peer IDs)
+            const peerId = typeof peer === 'string' ? peer : (peer.peerID || peer.id || `peer-${index}`)
+
+            return (
+              <div key={peerId || index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-500 mb-1">Peer {index + 1}</div>
+                    <div className="text-sm font-mono text-gray-900 break-all">{peerId}</div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       ) : (
-        <p className="text-sm text-gray-500">No peers on topic yet. Connect to more nodes.</p>
+        <div className="text-center py-8">
+          <p className="text-sm text-gray-500">No connected peers yet.</p>
+          <p className="text-xs text-gray-400 mt-2">Start the P2P service to connect to peers.</p>
+        </div>
       )}
     </div>
   )

@@ -38,17 +38,27 @@ function NetworkGraph() {
         name: 'You',
         type: 'local',
         val: 15,
+        fx: 0, // Fix position at center
+        fy: 0,
       })
 
-      // Add peer nodes and links
+      // Add peer nodes and links in a radial layout
       const peerList = Array.isArray(peers) ? peers : []
+      const radius = 300 // Distance from center
+      const angleStep = (2 * Math.PI) / peerList.length
+
       peerList.forEach((peer, index) => {
-        const peerId = peer.peerID || peer.id || `peer-${index}`
+        // Peers are returned as strings (peer IDs), not objects
+        const peerId = typeof peer === 'string' ? peer : (peer.peerID || peer.id || `peer-${index}`)
+        const angle = index * angleStep
+
         nodes.push({
           id: peerId,
           name: `Peer ${index + 1}`,
           type: 'peer',
           val: 10,
+          fx: radius * Math.cos(angle), // Fix position in circle
+          fy: radius * Math.sin(angle),
         })
 
         links.push({
@@ -101,15 +111,30 @@ function NetworkGraph() {
                 graphData={graphData}
                 nodeLabel="name"
                 nodeColor={(node) => (node.type === 'local' ? '#3b82f6' : '#8b5cf6')}
-                nodeRelSize={6}
+                nodeRelSize={4}
+                nodeCanvasObject={(node, ctx, globalScale) => {
+                  const label = node.name
+                  const fontSize = 12/globalScale
+                  ctx.font = `${fontSize}px Sans-Serif`
+                  const textWidth = ctx.measureText(label).width
+                  const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2)
+
+                  // Draw circle
+                  ctx.fillStyle = node.type === 'local' ? '#3b82f6' : '#8b5cf6'
+                  ctx.beginPath()
+                  ctx.arc(node.x, node.y, node.val || 4, 0, 2 * Math.PI, false)
+                  ctx.fill()
+                }}
                 linkColor={() => '#1e3a8a'}
-                linkWidth={2}
+                linkWidth={1}
+                linkDirectionalParticles={0}
                 backgroundColor="#111827"
-                d3VelocityDecay={0.3}
-                cooldownTicks={100}
+                enableNodeDrag={true}
+                enableZoomInteraction={true}
+                enablePanInteraction={true}
                 onEngineStop={() => {
                   if (graphRef.current) {
-                    graphRef.current.zoomToFit(400, 50)
+                    graphRef.current.zoomToFit(400, 100)
                   }
                 }}
               />
@@ -174,21 +199,27 @@ function NetworkGraph() {
             </div>
             {peerCount > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {peers.map((peer, index) => (
-                  <div key={peer.peerID || peer.id || index} className="border-b border-gray-100 pb-3 last:border-0">
-                    <div className="text-sm font-semibold text-gray-900 mb-1">
-                      Peer {index + 1}
-                    </div>
-                    <div className="text-xs font-mono bg-gray-50 p-2 rounded break-all">
-                      {peer.peerID || peer.id || 'Unknown ID'}
-                    </div>
-                    {peer.addresses && peer.addresses.length > 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {peer.addresses.length} address{peer.addresses.length !== 1 ? 'es' : ''}
+                {peers.map((peer, index) => {
+                  // Peers are returned as strings (peer IDs), not objects
+                  const peerId = typeof peer === 'string' ? peer : (peer.peerID || peer.id || 'Unknown ID')
+                  const peerAddresses = typeof peer === 'object' ? peer.addresses : null
+
+                  return (
+                    <div key={peerId || index} className="border-b border-gray-100 pb-3 last:border-0">
+                      <div className="text-sm font-semibold text-gray-900 mb-1">
+                        Peer {index + 1}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="text-xs font-mono bg-gray-50 p-2 rounded break-all">
+                        {peerId}
+                      </div>
+                      {peerAddresses && peerAddresses.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {peerAddresses.length} address{peerAddresses.length !== 1 ? 'es' : ''}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center py-8">

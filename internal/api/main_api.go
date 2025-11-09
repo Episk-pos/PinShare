@@ -314,6 +314,43 @@ func GetNode() *host.Host {
 	return p2pNodeInstance
 }
 
+// corsMiddleware adds CORS headers to allow cross-origin requests from the UI
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow requests from the UI dev server and production
+		origin := r.Header.Get("Origin")
+		allowedOrigins := []string{
+			"http://localhost:5174",
+			"http://localhost:5173",
+		}
+
+		// Check if origin is in allowed list
+		for _, allowed := range allowedOrigins {
+			if origin == allowed {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				break
+			}
+		}
+
+		// If no origin header (same-origin request), allow it
+		if origin == "" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func Start(ctx context.Context, node host.Host) {
 	SetNode(&node)
 	server := NewServer()
@@ -346,7 +383,7 @@ func Start(ctx context.Context, node host.Host) {
 
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 	s := &http.Server{
-		Handler: mux,
+		Handler: corsMiddleware(mux), // Wrap with CORS middleware
 		Addr:    addr,
 	}
 
