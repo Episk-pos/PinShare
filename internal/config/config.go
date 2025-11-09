@@ -8,17 +8,21 @@ import (
 
 // Default values for configuration
 const (
-	defaultUploadFolder     = "./upload"
-	defaultCacheFolder      = "./cache"
-	defaultRejectFolder     = "./rejected"
-	defaultMetaDataFile     = "metadata.json"
-	defaultIdentityKeyFile  = "identity.key"
-	defaultLibp2pPort       = 50001
-	defaultWatchInterval    = 2 * time.Minute
-	defaultOrgName          = "Cypherpunk"
-	defaultGroupName        = "TestLab"
-	defaultMetadataTopicID  = "/metadata-sync/1.0.0"
-	defaultFilteringTopicID = "/filtering-sync/1.0.0"
+	defaultUploadFolder      = "./upload"
+	defaultCacheFolder       = "./cache"
+	defaultRejectFolder      = "./rejected"
+	defaultMetaDataFile      = "metadata.json"
+	defaultIdentityKeyFile   = "identity.key"
+	defaultLibp2pPort        = 50001
+	defaultWatchInterval     = 2 * time.Minute
+	defaultOrgName           = "Cypherpunk"
+	defaultGroupName         = "TestLab"
+	defaultMetadataTopicID   = "/metadata-sync/1.0.0"
+	defaultFilteringTopicID  = "/filtering-sync/1.0.0"
+	defaultDatabaseFile      = "pinshare.db"
+	defaultTempDownloadDir   = "./tmp/gdrive"
+	defaultMaxConcurrentJobs = 3
+	defaultMaxFileSize       = 1024 * 1024 * 1024 // 1GB in bytes
 )
 
 // Default values for Feature Flags
@@ -52,6 +56,16 @@ type AppConfig struct {
 	FFSendFileVT              bool
 	FFSkipVT                  bool
 	FFIgnoreUploadsInMetadata bool
+
+	// Google Drive import configuration
+	DatabaseFile          string
+	TempDownloadDir       string
+	GoogleClientID        string
+	GoogleClientSecret    string
+	GoogleRedirectURL     string
+	MaxConcurrentJobs     int
+	MaxFileSize           int64
+	EncryptionKey         string // 32-byte encryption key for token storage
 }
 
 // LoadConfig loads configuration from environment variables, falling back to defaults.
@@ -77,6 +91,10 @@ func LoadConfig() (*AppConfig, error) {
 		FFSendFileVT:              defaultFFSendFileVT,
 		FFSkipVT:                  defaultFFSkipVT,
 		FFIgnoreUploadsInMetadata: defaultFFIgnoreUploadsInMetadata,
+		DatabaseFile:              defaultDatabaseFile,
+		TempDownloadDir:           defaultTempDownloadDir,
+		MaxConcurrentJobs:         defaultMaxConcurrentJobs,
+		MaxFileSize:               defaultMaxFileSize,
 	}
 
 	// Helper function to parse boolean environment variables
@@ -134,6 +152,40 @@ func LoadConfig() (*AppConfig, error) {
 		return nil, err
 	}
 	if err := parseBoolEnv("PS_FF_IGNORE_UPLOADS_IN_METADATA", &conf.FFIgnoreUploadsInMetadata); err != nil {
+		return nil, err
+	}
+
+	// Google Drive configuration
+	if err := parseStringEnv("PS_DATABASE_FILE", &conf.DatabaseFile); err != nil {
+		return nil, err
+	}
+	if err := parseStringEnv("PS_TEMP_DOWNLOAD_DIR", &conf.TempDownloadDir); err != nil {
+		return nil, err
+	}
+	if err := parseStringEnv("GOOGLE_CLIENT_ID", &conf.GoogleClientID); err != nil {
+		return nil, err
+	}
+	if err := parseStringEnv("GOOGLE_CLIENT_SECRET", &conf.GoogleClientSecret); err != nil {
+		return nil, err
+	}
+	if err := parseStringEnv("GOOGLE_REDIRECT_URL", &conf.GoogleRedirectURL); err != nil {
+		return nil, err
+	}
+	if err := parseIntEnv("PS_MAX_CONCURRENT_JOBS", &conf.MaxConcurrentJobs); err != nil {
+		return nil, err
+	}
+
+	// Parse max file size
+	var maxFileSizeInt int
+	if err := parseIntEnv("PS_MAX_FILE_SIZE_MB", &maxFileSizeInt); err != nil {
+		return nil, err
+	}
+	if maxFileSizeInt > 0 {
+		conf.MaxFileSize = int64(maxFileSizeInt) * 1024 * 1024 // Convert MB to bytes
+	}
+
+	// Encryption key (must be 32 bytes for AES-256)
+	if err := parseStringEnv("PS_ENCRYPTION_KEY", &conf.EncryptionKey); err != nil {
 		return nil, err
 	}
 

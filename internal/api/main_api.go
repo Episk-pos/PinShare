@@ -255,7 +255,7 @@ func GetNode() *host.Host {
 	return p2pNodeInstance
 }
 
-func Start(ctx context.Context, node host.Host) {
+func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 	SetNode(&node)
 	server := NewServer()
 
@@ -266,6 +266,39 @@ func Start(ctx context.Context, node host.Host) {
 	mux := http.NewServeMux()
 	mux.Handle("/", apiHandler)
 	mux.Handle("/metrics", promhttp.Handler())
+
+	// Add Google Drive import routes if server is configured
+	if gdriveServer != nil {
+		log.Println("[INFO] Registering Google Drive import API routes")
+
+		// OAuth routes
+		mux.HandleFunc("/api/google-drive/authorize", gdriveServer.AuthorizeRequest)
+		mux.HandleFunc("/api/google-drive/callback", gdriveServer.CallbackRequest)
+		mux.HandleFunc("/api/google-drive/auth-status", gdriveServer.GetAuthStatus)
+		mux.HandleFunc("/api/google-drive/revoke", gdriveServer.RevokeAccess)
+
+		// Drive operations routes
+		mux.HandleFunc("/api/google-drive/folders", gdriveServer.ListFolders)
+		mux.HandleFunc("/api/google-drive/preview-import", gdriveServer.PreviewImport)
+		mux.HandleFunc("/api/google-drive/import", gdriveServer.StartImport)
+		mux.HandleFunc("/api/google-drive/import/history", gdriveServer.GetImportHistory)
+
+		// Job status route (pattern matching for job ID)
+		mux.HandleFunc("/api/google-drive/import/", func(w http.ResponseWriter, r *http.Request) {
+			// Extract job ID from path
+			path := r.URL.Path
+			if len(path) > len("/api/google-drive/import/") {
+				jobID := path[len("/api/google-drive/import/"):]
+				// Check if it ends with /status
+				if len(jobID) > 7 && jobID[len(jobID)-7:] == "/status" {
+					jobID = jobID[:len(jobID)-7]
+					gdriveServer.GetImportStatus(w, r, jobID)
+					return
+				}
+			}
+			writeError(w, http.StatusNotFound, "endpoint not found")
+		})
+	}
 
 	// Check if port 8080 is in use. If so, increment until an open port is found.
 	var port int = 9090
