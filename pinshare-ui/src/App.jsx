@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast'
 import Browse from './pages/Browse.jsx'
 import NetworkDashboard from './pages/Network.jsx'
 import NetworkGraph from './pages/NetworkGraph.jsx'
+import UploadStatus from './pages/UploadStatus.jsx'
 import StatsHeader from './components/StatsHeader.jsx'
 import './index.css'
 
@@ -27,6 +28,7 @@ function App() {
                   <StatsHeader />
                   <nav className="flex items-center space-x-4">
                     <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium">Browse</Link>
+                    <Link to="/upload-status" className="text-blue-600 hover:text-blue-800 font-medium">Upload Status</Link>
                     <Link to="/network" className="text-blue-600 hover:text-blue-800 font-medium">Network Info</Link>
                     <Link to="/network-graph" className="text-blue-600 hover:text-blue-800 font-medium">Network Graph</Link>
                   </nav>
@@ -37,6 +39,7 @@ function App() {
           <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <Routes>
               <Route path="/" element={<Browse />} />
+              <Route path="/upload-status" element={<UploadStatus />} />
               <Route path="/network" element={<NetworkDashboard />} />
               <Route path="/network-graph" element={<NetworkGraph />} />
             </Routes>
