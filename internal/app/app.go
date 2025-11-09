@@ -14,6 +14,9 @@ import (
 	"pinshare/internal/api"
 	"pinshare/internal/cmd"
 	"pinshare/internal/config"
+	"pinshare/internal/db"
+	"pinshare/internal/gdrive"
+	"pinshare/internal/jobs"
 	"pinshare/internal/p2p"
 	"pinshare/internal/psfs"
 	"pinshare/internal/store"
@@ -25,9 +28,12 @@ import (
 )
 
 var (
-	Node       host.Host
-	P2PManager *p2p.PubSubManager
-	kadDHT     *dht.IpfsDHT
+	Node         host.Host
+	P2PManager   *p2p.PubSubManager
+	kadDHT       *dht.IpfsDHT
+	Database     *db.DB
+	JobQueue     *jobs.Queue
+	GDriveServer *api.GDriveServer
 )
 
 func setupID(idFile string) crypto.PrivKey {
@@ -108,7 +114,61 @@ func Start() {
 		// start libp2p service here
 		createFolders(appconf)
 
-		err := store.GlobalStore.Load(appconf.MetaDataFile)
+		// Initialize database for Google Drive import
+		var err error
+		Database, err = db.NewDB(appconf.DatabaseFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[ERROR] Failed to initialize database: %v\n", err)
+			os.Exit(1)
+		}
+		defer Database.Close()
+		fmt.Println("[INFO] Database initialized successfully")
+
+		// Set encryption key for token storage
+		if appconf.EncryptionKey != "" {
+			if err := db.SetEncryptionKey([]byte(appconf.EncryptionKey)); err != nil {
+				fmt.Fprintf(os.Stderr, "[ERROR] Invalid encryption key (must be 32 bytes): %v\n", err)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Println("[WARNING] No encryption key set (PS_ENCRYPTION_KEY), using default key. Set a secure 32-byte key for production!")
+		}
+
+		// Initialize job queue for import operations
+		JobQueue = jobs.NewQueue(ctx, appconf.MaxConcurrentJobs)
+		JobQueue.Start()
+		defer JobQueue.Stop()
+		fmt.Printf("[INFO] Job queue started with %d workers\n", appconf.MaxConcurrentJobs)
+
+		// Initialize Google Drive API server if OAuth credentials are configured
+		if appconf.GoogleClientID != "" && appconf.GoogleClientSecret != "" && appconf.GoogleRedirectURL != "" {
+			oauthConfig := &gdrive.OAuthConfig{
+				ClientID:     appconf.GoogleClientID,
+				ClientSecret: appconf.GoogleClientSecret,
+				RedirectURL:  appconf.GoogleRedirectURL,
+			}
+
+			GDriveServer = api.NewGDriveServer(
+				Database,
+				oauthConfig,
+				JobQueue,
+				appconf.TempDownloadDir,
+				appconf.MaxFileSize,
+			)
+
+			// Create temp download directory
+			if err := os.MkdirAll(appconf.TempDownloadDir, 0755); err != nil {
+				fmt.Fprintf(os.Stderr, "[ERROR] Failed to create temp download directory: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("[INFO] Google Drive import enabled")
+		} else {
+			fmt.Println("[WARNING] Google Drive import disabled (OAuth credentials not configured)")
+			fmt.Println("[INFO] Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL to enable")
+		}
+
+		err = store.GlobalStore.Load(appconf.MetaDataFile)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				fmt.Fprintf(os.Stderr, "Warning: could not load data file '%s': %v\n", appconf.MetaDataFile, err)
@@ -163,6 +223,9 @@ func Start() {
 			os.Exit(1)
 		}
 
+		// Set global P2P manager for metadata publishing
+		p2p.SetGlobalP2PManager(P2PManager)
+
 		fmt.Println("[INFO] PubSub Manager initialized.")
 
 		go func() {
@@ -206,7 +269,7 @@ func Start() {
 		}
 
 		go func() {
-			api.Start(ctx, Node)
+			api.Start(ctx, Node, GDriveServer)
 			for {
 				select {
 				case <-ctx.Done():

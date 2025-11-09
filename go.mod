@@ -15,10 +15,13 @@ require (
 	github.com/libp2p/go-libp2p v0.42.0
 	github.com/libp2p/go-libp2p-kad-dht v0.33.1
 	github.com/libp2p/go-libp2p-pubsub v0.13.1
+	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/multiformats/go-multiaddr v0.16.0
 	github.com/multiformats/go-multicodec v0.9.1
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/spf13/cobra v1.8.0
+	golang.org/x/oauth2 v0.33.0
+	google.golang.org/api v0.255.0
 )
 
 require (
