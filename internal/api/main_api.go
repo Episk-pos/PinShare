@@ -74,6 +74,22 @@ func (s *Server) Health(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
+// GetUploadStatus returns the status of all file uploads
+func (s *Server) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
+	statuses := store.StatusManager.GetAllStatuses()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(statuses)
+}
+
+// GetActiveUploadStatus returns only active uploads (in progress)
+func (s *Server) GetActiveUploadStatus(w http.ResponseWriter, r *http.Request) {
+	statuses := store.StatusManager.GetActiveStatuses()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(statuses)
+}
+
 // GetFileBySHA256 handles GET /files/{fileSHA256}
 func (s *Server) GetFileBySHA256(w http.ResponseWriter, r *http.Request, fileSHA256 string) {
 	file, found := store.GlobalStore.GetFile(fileSHA256)
@@ -312,6 +328,8 @@ func Start(ctx context.Context, node host.Host) {
 	// TODO: Disabled until p2p.GetPubSubManager() is implemented
 	// mux.HandleFunc("/p2p/topic-peers", server.ListTopicPeers)
 	mux.HandleFunc("/health", server.Health)
+	mux.HandleFunc("/upload-status", server.GetUploadStatus)
+	mux.HandleFunc("/upload-status/active", server.GetActiveUploadStatus)
 	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 
 	portStr := os.Getenv("API_PORT")
