@@ -41,3 +41,5 @@ pinshare
 /test/node*
 
 data/
+pinshare-ui/node_modules/
+node_modules/
