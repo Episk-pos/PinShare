@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git ls-tree:*)",
+      "Bash(npm install)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "Bash(gh issue create --repo Episk-pos/PinShare --title \"Implement server-side search endpoint for scalable file searching\" --label \"enhancement\" --body \"$(cat <<''EOF''\n## Summary\n\nCurrently, file search is implemented entirely client-side using Fuse.js in the React UI. While this works well for small-to-medium datasets, it has scalability limitations as the dataset grows larger.\n\nThis issue proposes implementing a server-side search endpoint to handle search queries on the backend, which will:\n- Reduce client-side data transfer for large datasets\n- Enable pagination of search results\n- Support more advanced search features\n- Improve performance for users with slower devices\n\n## Current Implementation\n\n**Client-side search** in `pinshare-ui/src/pages/Browse.jsx`:\n- Uses Fuse.js for fuzzy matching\n- Searches across: fileName, ipfsCID, fileType, fileSHA256\n- Field weights: fileName (0.4), ipfsCID (0.3), fileType (0.2), fileSHA256 (0.1)\n- Threshold: 0.3 (fuzzy matching tolerance)\n- All files are fetched via `GET /files` then filtered in browser\n\n## Proposed Changes\n\n### Backend API\n\nAdd new endpoint: `GET /files/search`\n\n**Query Parameters:**\n- `q` (required): Search query string\n- `limit` (optional): Max results to return (default: 50)\n- `offset` (optional): Pagination offset (default: 0)\n- `fields` (optional): Comma-separated fields to search (default: all)\n- `threshold` (optional): Fuzzy match threshold (default: 0.3)\n\n**Response:**\n```json\n{\n  \"results\": [...],\n  \"total\": 123,\n  \"limit\": 50,\n  \"offset\": 0,\n  \"query\": \"example\"\n}\n```\n\n### Implementation Options\n\n1. **Go native implementation** with string matching libraries\n2. **SQLite FTS (Full-Text Search)** if/when migrating to SQLite\n3. **PostgreSQL full-text search** if/when migrating to PostgreSQL\n4. **Dedicated search engine** (Elasticsearch, Meilisearch, etc.) for large-scale deployments\n\n### Migration Strategy\n\nThe client-side search should remain as a fallback:\n1. Try server-side search first\n2. If endpoint not available (older backend), fall back to client-side Fuse.js\n3. This ensures backward compatibility during rollout\n\n## Benefits\n\n- **Scalability**: Handles thousands of files without performance degradation\n- **Reduced bandwidth**: Only matching results sent to client\n- **Pagination**: Large result sets can be paginated\n- **Advanced features**: Can add filters, facets, aggregations, etc.\n- **Consistent results**: Same search algorithm for all clients\n\n## Related Issues\n\n- #TBD: PostgreSQL migration (will enable PostgreSQL full-text search)\n\n## Implementation Priority\n\n**Medium Priority** - Current client-side search works well for typical use cases. This becomes important as the dataset grows beyond ~1000 files.\n\n---\n*Migrated from bryanchriswhite/PinShare#2*\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
