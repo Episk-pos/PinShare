@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 
 	"pinshare/internal/p2p"
@@ -88,6 +89,38 @@ func (s *Server) GetActiveUploadStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(statuses)
+}
+
+// PinContent pins content to IPFS by CID
+func (s *Server) PinContent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Extract CID from URL path: /ipfs/pin/{cid}
+	path := r.URL.Path
+	cid := path[len("/ipfs/pin/"):]
+	if cid == "" {
+		writeError(w, http.StatusBadRequest, "CID is required")
+		return
+	}
+
+	// Call IPFS pin add command
+	cmd := fmt.Sprintf("ipfs pin add %s", cid)
+	output, err := exec.Command("sh", "-c", cmd).CombinedOutput()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("pin failed: %v - %s", err, string(output)))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	response := map[string]string{
+		"status": "pinned",
+		"cid":    cid,
+	}
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // GetFileBySHA256 handles GET /files/{fileSHA256}
@@ -367,6 +400,7 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 	mux.HandleFunc("/health", server.Health)
 	mux.HandleFunc("/upload-status", server.GetUploadStatus)
 	mux.HandleFunc("/upload-status/active", server.GetActiveUploadStatus)
+	mux.HandleFunc("/ipfs/pin/", server.PinContent)
 	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 
 	// Add Google Drive import routes if server is configured

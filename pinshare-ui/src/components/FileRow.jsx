@@ -64,13 +64,14 @@ function FileRow({ file }) {
 
   const handlePin = async () => {
     try {
-      const response = await fetch(`${IPFS_API_BASE}/pin/add?arg=${file.ipfsCID}`, {
+      const response = await fetch(`/api/ipfs/pin/${file.ipfsCID}`, {
         method: 'POST',
       })
       if (response.ok) {
         toast.success(`Pinned ${file.ipfsCID.substring(0, 8)}...`)
       } else {
-        throw new Error('Pin failed')
+        const error = await response.json()
+        throw new Error(error.message || 'Pin failed')
       }
     } catch (error) {
       toast.error(`Pin error: ${error.message}. Try IPFS CLI: ipfs pin add ${file.ipfsCID}`)
