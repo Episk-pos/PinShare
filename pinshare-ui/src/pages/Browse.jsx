@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { useMetadata } from '../hooks/useMetadata'
 import FileRow from '../components/FileRow.jsx'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, ArrowUpDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9090'
@@ -17,6 +17,8 @@ function Browse() {
   // Initialize state from URL params
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [filterType, setFilterType] = useState(searchParams.get('type') || 'all')
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'dateAdded')
+  const [sortDirection, setSortDirection] = useState(searchParams.get('dir') || 'desc')
   const [filteredFiles, setFilteredFiles] = useState([])
 
   // Update URL when search/filter changes
@@ -38,6 +40,29 @@ function Browse() {
       newParams.set('type', value)
     } else {
       newParams.delete('type')
+    }
+    setSearchParams(newParams, { replace: true })
+  }
+
+  const handleSortChange = (value) => {
+    setSortBy(value)
+    const newParams = new URLSearchParams(searchParams)
+    if (value && value !== 'dateAdded') {
+      newParams.set('sort', value)
+    } else {
+      newParams.delete('sort')
+    }
+    setSearchParams(newParams, { replace: true })
+  }
+
+  const toggleSortDirection = () => {
+    const newDir = sortDirection === 'asc' ? 'desc' : 'asc'
+    setSortDirection(newDir)
+    const newParams = new URLSearchParams(searchParams)
+    if (newDir !== 'desc') {
+      newParams.set('dir', newDir)
+    } else {
+      newParams.delete('dir')
     }
     setSearchParams(newParams, { replace: true })
   }
@@ -87,8 +112,29 @@ function Browse() {
       results = results.filter(file => file.fileType === filterType)
     }
 
-    setFilteredFiles(results)
-  }, [files, searchTerm, filterType, fuse])
+    // Apply sorting
+    const sortedResults = [...results].sort((a, b) => {
+      let compareValue = 0
+
+      if (sortBy === 'fileName') {
+        const nameA = (a.fileName || '').toLowerCase()
+        const nameB = (b.fileName || '').toLowerCase()
+        compareValue = nameA.localeCompare(nameB)
+      } else if (sortBy === 'dateAdded') {
+        const dateA = a.addedAt ? new Date(a.addedAt) : new Date(0)
+        const dateB = b.addedAt ? new Date(b.addedAt) : new Date(0)
+        compareValue = dateA - dateB
+      } else if (sortBy === 'fileType') {
+        const typeA = (a.fileType || '').toLowerCase()
+        const typeB = (b.fileType || '').toLowerCase()
+        compareValue = typeA.localeCompare(typeB)
+      }
+
+      return sortDirection === 'asc' ? compareValue : -compareValue
+    })
+
+    setFilteredFiles(sortedResults)
+  }, [files, searchTerm, filterType, sortBy, sortDirection, fuse])
 
   if (isLoading) return <div className="text-center py-8">Loading metadata...</div>
   if (error) return <div className="text-center py-8 text-red-500">Error: {error.message}. Check API connection.</div>
@@ -116,6 +162,24 @@ function Browse() {
             <option key={type} value={type}>{type.toUpperCase()}</option>
           ))}
         </select>
+        <div className="flex gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => handleSortChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="dateAdded">Date Added</option>
+            <option value="fileName">File Name</option>
+            <option value="fileType">File Type</option>
+          </select>
+          <button
+            onClick={toggleSortDirection}
+            className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+          >
+            <ArrowUpDown className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 bg-white">
