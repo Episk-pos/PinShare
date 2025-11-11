@@ -245,7 +245,7 @@ func (psm *PubSubManager) handleIncomingMessages() {
 				if err := psm.metadataStore.Save(psm.dataFile); err != nil {
 					fmt.Printf("[ERROR] Failed to save metadata after applying gossip update from %s: %v\n", msg.ReceivedFrom.String(), err)
 				}
-				newFile, err := ProcessDownload(receivedMeta)
+				newFile, err := ProcessDownload(psm.ctx, receivedMeta)
 				if err != nil {
 					fmt.Printf("[ERROR] Failed to process download for %s: %v\n", receivedMeta.FileSHA256, err)
 					continue

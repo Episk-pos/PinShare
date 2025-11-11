@@ -165,15 +165,19 @@ func FreshclamUpdate() {
 	fmt.Println(string(out))
 }
 
-func ClamScanFileClean(path string) (bool, error) {
+func ClamScanFileClean(ctx context.Context, path string) (bool, error) {
 	absPath, err1 := filepath.Abs(path)
 	if err1 != nil {
 		fmt.Println(err1)
 	}
 	fmt.Println("[INFO] Running ClamAv Scan of File " + absPath)
-	_, err := exec.Command("clamscan", "--no-summary", "--quiet", absPath).Output()
+	_, err := exec.CommandContext(ctx, "clamscan", "--no-summary", "--quiet", absPath).Output()
 	// return 0 ok return 1 = malware
 	if err != nil {
+		// Check if error is due to context cancellation
+		if ctx.Err() != nil {
+			return false, fmt.Errorf("clamscan cancelled: %w", ctx.Err())
+		}
 		fmt.Println(err)
 		return false, err
 	}
@@ -184,14 +188,15 @@ func ClamScanFileClean(path string) (bool, error) {
 
 // container error
 // 2025/07/02 10:53:39 page load error net::ERR_CONNECTION_TIMED_OUT
-func GetVirusTotalWSVerdictByHash(hash string) (bool, error) {
+func GetVirusTotalWSVerdictByHash(parentCtx context.Context, hash string) (bool, error) {
 	// safe == true
 	// unsafe == false
 	baseurl := "https://www.virustotal.com"
 	uri := "/gui/file/"
 	url := baseurl + uri + hash
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	// Create child context with timeout, inheriting cancellation from parent
+	ctx, cancel := context.WithTimeout(parentCtx, 120*time.Second)
 	defer cancel()
 
 	options := append(chromedp.DefaultExecAllocatorOptions[:],

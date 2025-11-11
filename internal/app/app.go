@@ -314,13 +314,13 @@ func startFileWatcher(ctx context.Context, folderPath string, interval time.Dura
 	defer ticker.Stop()
 
 	fmt.Printf("[INFO] Performing initial scan of '%s'...\n", folderPath)
-	p2p.ProcessUploads(folderPath)
+	p2p.ProcessUploads(ctx, folderPath)
 
 	for {
 		select {
 		case <-ticker.C:
 			fmt.Printf("[INFO] Scanning '%s' for new files...\n", folderPath)
-			p2p.ProcessUploads(folderPath)
+			p2p.ProcessUploads(ctx, folderPath)
 		case <-ctx.Done():
 			fmt.Println("[INFO] Stopping file watcher.")
 			return

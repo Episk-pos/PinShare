@@ -16,7 +16,7 @@ var testslCmd = &cobra.Command{
 		fmt.Println("[DEBUG] CMD testsl called")
 		fileSHA256 := args[0]
 
-		verdict, err := psfs.GetVirusTotalWSVerdictByHash(fileSHA256)
+		verdict, err := psfs.GetVirusTotalWSVerdictByHash(cmd.Context(), fileSHA256)
 
 		if err != nil {
 			return err

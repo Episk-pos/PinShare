@@ -285,7 +285,7 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 	}
 
 	// Run security scan
-	isClean, err := psfs.ClamScanFileClean(tempFilePath)
+	isClean, err := psfs.ClamScanFileClean(ctx, tempFilePath)
 	if err != nil {
 		j.database.FailImportFile(importFile.ID, fmt.Sprintf("Security scan failed: %v", err))
 		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("Security scan failed: %v", err))
@@ -307,11 +307,16 @@ func (j *ImportJob) processFile(ctx context.Context, driveFile *gdrive.DriveFile
 		return 0, fmt.Errorf("failed to update status: %w", err)
 	}
 
-	ipfsCID := psfs.AddFileIPFS(tempFilePath)
+	ipfsCID, err := psfs.AddFileIPFS(ctx, tempFilePath)
+	if err != nil {
+		j.database.FailImportFile(importFile.ID, fmt.Sprintf("IPFS upload failed: %v", err))
+		store.StatusManager.FailUpload(driveFile.Name, fmt.Sprintf("IPFS upload failed: %v", err))
+		return 0, fmt.Errorf("failed to add file to IPFS: %w", err)
+	}
 	if ipfsCID == "" {
-		j.database.FailImportFile(importFile.ID, "IPFS upload failed")
-		store.StatusManager.FailUpload(driveFile.Name, "IPFS upload failed")
-		return 0, fmt.Errorf("failed to add file to IPFS")
+		j.database.FailImportFile(importFile.ID, "IPFS upload failed - empty CID")
+		store.StatusManager.FailUpload(driveFile.Name, "IPFS upload failed - empty CID")
+		return 0, fmt.Errorf("failed to add file to IPFS - empty CID returned")
 	}
 
 	log.Printf("[INFO] Added to IPFS with CID: %s", ipfsCID)

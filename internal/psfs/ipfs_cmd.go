@@ -1,19 +1,20 @@
 package psfs
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
 // execute this cmd ipfs add  --cid-version 1 --raw-leaves gt256kb.txt -Q
-func AddFileIPFS(path string) string {
-	out, err := exec.Command("ipfs", "add", "--cid-version", "1", "--raw-leaves", path, "-Q").Output()
+func AddFileIPFS(ctx context.Context, path string) (string, error) {
+	out, err := exec.CommandContext(ctx, "ipfs", "add", "--cid-version", "1", "--raw-leaves", path, "-Q").Output()
 	if err != nil {
-		fmt.Println(err)
+		return "", fmt.Errorf("ipfs add failed: %w", err)
 	}
 	// fmt.Println(strings.TrimSpace(string(out)))
-	return strings.TrimSpace(string(out))
+	return strings.TrimSpace(string(out)), nil
 }
 
 func GetFileIPFS(cid string, filepath string) {

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"pinshare/internal/p2p"
 	"pinshare/internal/store"
@@ -89,6 +90,42 @@ func (s *Server) GetActiveUploadStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(statuses)
+}
+
+// CancelUpload cancels an in-progress upload by filename
+func (s *Server) CancelUpload(w http.ResponseWriter, r *http.Request) {
+	// Only handle paths that end with /cancel
+	path := r.URL.Path
+	if !strings.HasSuffix(path, "/cancel") {
+		http.NotFound(w, r)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Extract filename from URL path: /upload-status/{fileName}/cancel
+	// Remove the /upload-status/ prefix and /cancel suffix
+	fileName := path[len("/upload-status/") : len(path)-len("/cancel")]
+
+	if fileName == "" {
+		writeError(w, http.StatusBadRequest, "fileName is required")
+		return
+	}
+
+	err := store.StatusManager.CancelUpload(fileName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Upload cancelled successfully",
+	})
 }
 
 // PinContent pins content to IPFS by CID
@@ -400,6 +437,7 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 	mux.HandleFunc("/health", server.Health)
 	mux.HandleFunc("/upload-status", server.GetUploadStatus)
 	mux.HandleFunc("/upload-status/active", server.GetActiveUploadStatus)
+	mux.HandleFunc("/upload-status/", server.CancelUpload) // Handles /upload-status/{fileName}/cancel
 	mux.HandleFunc("/ipfs/pin/", server.PinContent)
 	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 

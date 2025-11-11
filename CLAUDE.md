@@ -1,0 +1,1 @@
+- please avoid single letter and abbreviated variable names in go
