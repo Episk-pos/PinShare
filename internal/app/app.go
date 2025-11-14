@@ -363,7 +363,7 @@ func checkDependanciesAndEnableSecurityPath(appconf *config.AppConfig) bool {
 
 	//>> IPFS + CMD Line
 	// whereis ipfs
-	// ping localhost:5001
+	// ping localhost:5001 or configured IPFS_API
 	var requirementsMet bool = true
 	if commandExists("ipfs") {
 		fmt.Println("[CHECK] ipfs cmd found")
@@ -371,11 +371,33 @@ func checkDependanciesAndEnableSecurityPath(appconf *config.AppConfig) bool {
 		fmt.Println("[ERROR] ipfs cmd Missing")
 		requirementsMet = false
 	}
-	if checkPort("localhost", 5001) {
-		fmt.Println("[CHECK] ipfs daemon running")
+
+	// Check IPFS API connectivity
+	ipfsAPIURL := os.Getenv("IPFS_API")
+	if ipfsAPIURL != "" {
+		// External IPFS API configured, test it using POST request
+		fmt.Printf("[INFO] Using external IPFS API: %s\n", ipfsAPIURL)
+		resp, err := http.Post(ipfsAPIURL+"/api/v0/version", "", nil)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				fmt.Println("[CHECK] External IPFS API reachable")
+			} else {
+				fmt.Printf("[ERROR] External IPFS API returned status: %d\n", resp.StatusCode)
+				requirementsMet = false
+			}
+		} else {
+			fmt.Printf("[ERROR] External IPFS API not reachable: %v\n", err)
+			requirementsMet = false
+		}
 	} else {
-		fmt.Println("[ERROR] ipfs daemon not running")
-		requirementsMet = false
+		// Default to checking local IPFS daemon
+		if checkPort("localhost", 5001) {
+			fmt.Println("[CHECK] ipfs daemon running")
+		} else {
+			fmt.Println("[ERROR] ipfs daemon not running")
+			requirementsMet = false
+		}
 	}
 
 	if checkPort("localhost", 36939) {

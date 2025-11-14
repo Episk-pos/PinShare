@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pinshare-ui
+  namespace: pinshare
+  labels:
+    app: pinshare-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pinshare-ui
+  template:
+    metadata:
+      labels:
+        app: pinshare-ui
+    spec:
+      containers:
+        - name: ui
+          image: pinshare-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5174
+              protocol: TCP
+
+          env:
+            - name: VITE_PIN_SHARE_API
+              value: "http://pinshare-backend:9090"
+            - name: VITE_IPFS_API
+              value: "http://pinshare-backend:5001"
+            - name: VITE_GATEWAY_BASE
+              value: "http://pinshare-backend:8080"
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5174
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5174
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

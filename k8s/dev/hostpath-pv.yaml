@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pinshare-backend-data-pv
+  labels:
+    type: local
+    app: pinshare-backend
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/pinshare-data"
+    type: DirectoryOrCreate

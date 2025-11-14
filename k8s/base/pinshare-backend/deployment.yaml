@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pinshare-backend
+  namespace: pinshare
+  labels:
+    app: pinshare-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pinshare-backend
+  template:
+    metadata:
+      labels:
+        app: pinshare-backend
+    spec:
+      containers:
+        - name: pinshare
+          image: pinshare-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: api
+              containerPort: 9090
+              protocol: TCP
+            - name: libp2p
+              containerPort: 50001
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: pinshare-backend-config
+            - secretRef:
+                name: pinshare-backend-secret
+
+          env:
+            - name: IPFS_API
+              value: "http://ipfs-0.ipfs.pinshare.svc.cluster.local:5001"
+
+          volumeMounts:
+            - name: backend-data
+              mountPath: /opt/pinshare/data
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+      volumes:
+        - name: backend-data
+          persistentVolumeClaim:
+            claimName: pinshare-backend-data

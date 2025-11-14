@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ipfs
+  namespace: pinshare
+  labels:
+    app: ipfs
+spec:
+  serviceName: ipfs
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs
+  template:
+    metadata:
+      labels:
+        app: ipfs
+    spec:
+      containers:
+      - name: ipfs
+        image: ipfs/kubo:latest
+        ports:
+        - name: api
+          containerPort: 5001
+          protocol: TCP
+        - name: gateway
+          containerPort: 8080
+          protocol: TCP
+        - name: swarm-tcp
+          containerPort: 4001
+          protocol: TCP
+        - name: swarm-udp
+          containerPort: 4001
+          protocol: UDP
+
+        env:
+        - name: IPFS_PATH
+          value: /data/ipfs
+
+        volumeMounts:
+        - name: ipfs-data
+          mountPath: /data/ipfs
+
+        livenessProbe:
+          exec:
+            command:
+            - ipfs
+            - dag
+            - stat
+            - /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "ipfs id > /dev/null 2>&1"
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+  volumeClaimTemplates:
+  - metadata:
+      name: ipfs-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: manual
+      resources:
+        requests:
+          storage: 10Gi
