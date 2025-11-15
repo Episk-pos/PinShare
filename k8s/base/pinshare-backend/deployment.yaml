@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: pinshare
-          image: pinshare-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/episk-pos/pinshare-backend:latest
+          imagePullPolicy: Always
           ports:
             - name: api
               containerPort: 9090

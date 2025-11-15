@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: oauth-broker
-          image: oauth-broker:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/episk-pos/oauth-broker:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8888
