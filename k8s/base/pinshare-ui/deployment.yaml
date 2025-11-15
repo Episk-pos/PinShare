@@ -15,8 +15,6 @@ spec:
       labels:
         app: pinshare-ui
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: ui
           image: ghcr.io/episk-pos/pinshare-ui:latest

@@ -15,8 +15,6 @@ spec:
       labels:
         app: oauth-broker
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: oauth-broker
           image: ghcr.io/episk-pos/oauth-broker:latest
