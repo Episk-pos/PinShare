@@ -1,5 +1,7 @@
 creation_rules:
   - path_regex: k8s/secrets/.*\.yaml$
     age: age140ptrsjpzlv232gavz0p5clen227nj3fq4fa8d9tgu43pjqamaxqqev5a7
+    encrypted_regex: '^(data|stringData)$'
   - path_regex: k8s/overlays/.*/.*-secret\.yaml$
     age: age140ptrsjpzlv232gavz0p5clen227nj3fq4fa8d9tgu43pjqamaxqqev5a7
+    encrypted_regex: '^(data|stringData)$'
