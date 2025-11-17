@@ -9,39 +9,13 @@ allow_k8s_contexts('kind-pinshare')  # Adjust this to match your local K8s conte
 # For minikube, use: allow_k8s_contexts('minikube')
 # Or comment out to allow any context
 
-# Load Kubernetes manifests
-k8s_yaml('k8s/base/namespace.yaml')
-k8s_yaml('k8s/dev/hostpath-pv.yaml')
+# Load Kubernetes manifests using Kustomize
+# Development overlay includes localhost URLs for OAuth and other services
+k8s_yaml(local('kubectl kustomize k8s/overlays/dev'))
 
-k8s_yaml(local('sops --decrypt k8s/secrets/pinshare-backend-secret.yaml'))
-k8s_yaml(local('sops --decrypt k8s/secrets/oauth-broker-secret.yaml'))
-
-# IPFS StatefulSet (separate from PinShare)
-k8s_yaml([
-    'k8s/base/ipfs/pv.yaml',
-    'k8s/base/ipfs/service.yaml',
-    'k8s/base/ipfs/statefulset.yaml',
-])
-
-# Backend service
-k8s_yaml([
-    'k8s/base/pinshare-backend/pvc.yaml',
-    'k8s/base/pinshare-backend/configmap.yaml',
-    'k8s/base/pinshare-backend/service.yaml',
-    'k8s/base/pinshare-backend/deployment.yaml',
-])
-
-# UI service
-k8s_yaml([
-    'k8s/base/pinshare-ui/service.yaml',
-    'k8s/base/pinshare-ui/deployment.yaml',
-])
-
-# OAuth broker service
-k8s_yaml([
-    'k8s/base/oauth-broker/service.yaml',
-    'k8s/base/oauth-broker/deployment.yaml',
-])
+# Decrypt dev-specific secrets with SOPS
+k8s_yaml(local('sops --decrypt k8s/overlays/dev/pinshare-backend-secret.yaml'))
+k8s_yaml(local('sops --decrypt k8s/overlays/dev/oauth-broker-secret.yaml'))
 
 # Build Docker images
 # Backend

@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pinshare
+
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # IPFS
+  - ipfs/pv.yaml
+  - ipfs/service.yaml
+  - ipfs/statefulset.yaml
+
+  # PinShare Backend
+  - pinshare-backend/configmap.yaml
+  - pinshare-backend/deployment.yaml
+  - pinshare-backend/pvc.yaml
+  - pinshare-backend/service.yaml
+
+  # PinShare UI
+  - pinshare-ui/deployment.yaml
+  - pinshare-ui/service.yaml
+
+  # OAuth Broker
+  - oauth-broker/deployment.yaml
+  - oauth-broker/service.yaml

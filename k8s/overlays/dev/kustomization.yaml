@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pinshare
+
+# Base resources
+bases:
+  - ../../base
+
+# Dev-specific resources
+resources:
+  - hostpath-pv.yaml
+
+# Dev-specific secrets (SOPS-encrypted, decrypted at deploy time)
+# These contain localhost URLs for development
+# Note: In Tilt, these are decrypted via: k8s_yaml(local('sops --decrypt ...'))
