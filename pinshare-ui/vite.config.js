@@ -20,9 +20,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   }),
-  define: {
-    'import.meta.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE || ''),
-    'import.meta.env.VITE_IPFS_API_BASE': JSON.stringify(process.env.VITE_IPFS_API_BASE || '/ipfs-api'),
-    'import.meta.env.VITE_GATEWAY_BASE': JSON.stringify(process.env.VITE_GATEWAY_BASE || 'http://localhost:8080/ipfs'),
-  },
+  // Vite automatically loads .env files based on mode (development, production, etc.)
+  // No need to manually define env vars here - they're available via import.meta.env.VITE_*
 }))
