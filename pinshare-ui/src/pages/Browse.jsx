@@ -11,7 +11,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9090'
 const GATEWAY_BASE = import.meta.env.VITE_GATEWAY_BASE || 'http://localhost:8080/ipfs'
 
 function Browse() {
-  const { data: files, isLoading, error } = useMetadata()
+  const { data: filesData, isLoading, error } = useMetadata()
+  // Ensure files is always an array
+  const files = Array.isArray(filesData) ? filesData : []
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Initialize state from URL params
