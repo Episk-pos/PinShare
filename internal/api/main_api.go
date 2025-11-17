@@ -389,9 +389,22 @@ func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Allow requests from the UI dev server and production
 		origin := r.Header.Get("Origin")
-		allowedOrigins := []string{
-			"http://localhost:5174",
-			"http://localhost:5173",
+
+		// Read allowed origins from environment variable (comma-separated)
+		// Defaults to localhost dev servers if not set
+		allowedOriginsEnv := os.Getenv("PS_ALLOWED_ORIGINS")
+		var allowedOrigins []string
+		if allowedOriginsEnv != "" {
+			// Split by comma and trim whitespace
+			for _, o := range strings.Split(allowedOriginsEnv, ",") {
+				allowedOrigins = append(allowedOrigins, strings.TrimSpace(o))
+			}
+		} else {
+			// Default to localhost for development
+			allowedOrigins = []string{
+				"http://localhost:5174",
+				"http://localhost:5173",
+			}
 		}
 
 		// Check if origin is in allowed list
