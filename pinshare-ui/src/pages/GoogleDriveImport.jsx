@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+const OAUTH_BASE = import.meta.env.VITE_OAUTH_BASE || 'http://localhost:8888'
+
 export default function GoogleDriveImport() {
   const [authStatus, setAuthStatus] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -112,7 +114,7 @@ export default function GoogleDriveImport() {
   }
 
   const openOAuthBroker = () => {
-    window.open('http://localhost:8888', '_blank')
+    window.open(OAUTH_BASE, '_blank')
     setShowTokenPaste(true)
   }
 
