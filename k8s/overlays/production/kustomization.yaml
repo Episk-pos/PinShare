@@ -10,3 +10,6 @@ bases:
 # Production-specific secrets (SOPS-encrypted, decrypted by Flux)
 # These contain production URLs (oauth.episkopos.community, etc.)
 # Note: Flux will decrypt these automatically with SOPS
+resources:
+  - oauth-broker-secret.yaml
+  - pinshare-backend-secret.yaml
