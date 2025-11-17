@@ -3,13 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "config": {
+    "cloudfrontId": "E1N441DRNZRMQ4",
+    "s3Bucket": "share.episkopos.community"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "playwright test",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "deploy:s3": "npm run build && aws s3 sync dist/ s3://$npm_package_config_s3Bucket --delete",
+    "deploy:uncache": "aws cloudfront create-invalidation --distribution-id $npm_package_config_cloudfrontId --paths '/*'",
+    "deploy": "npm run deploy:s3 && npm run deploy:uncache"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
