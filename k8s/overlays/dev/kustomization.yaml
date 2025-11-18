@@ -11,6 +11,10 @@ bases:
 resources:
   - hostpath-pv.yaml
 
+# Patches for development environment
+patchesStrategicMerge:
+  - pinshare-ui-patch.yaml
+
 # Dev-specific secrets (SOPS-encrypted, decrypted at deploy time)
 # These contain localhost URLs for development
 # Note: In Tilt, these are decrypted via: k8s_yaml(local('sops --decrypt ...'))

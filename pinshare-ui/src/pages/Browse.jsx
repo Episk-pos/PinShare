@@ -7,7 +7,7 @@ import FileRow from '../components/FileRow.jsx'
 import { Search, Filter, ArrowUpDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9090'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 const GATEWAY_BASE = import.meta.env.VITE_GATEWAY_BASE || 'http://localhost:8080/ipfs'
 
 function Browse() {

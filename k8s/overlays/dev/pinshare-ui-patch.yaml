@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pinshare-ui
+spec:
+  template:
+    spec:
+      containers:
+        - name: ui
+          env:
+            # In dev mode with Vite, we don't set these so relative paths are used
+            # This allows Vite's proxy to work correctly
+            - name: VITE_PIN_SHARE_API
+              value: ""
+            - name: VITE_IPFS_API
+              value: ""
+            - name: VITE_GATEWAY_BASE
+              value: ""
+            # OAuth broker needs to be set for the dev environment
+            - name: VITE_OAUTH_BASE
+              value: "http://localhost:8888"

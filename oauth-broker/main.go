@@ -275,6 +275,17 @@ func renderError(w http.ResponseWriter, message string) {
 
 func renderSuccess(w http.ResponseWriter, token *oauth2.Token) {
 	tokenJSON, _ := json.MarshalIndent(token, "", "  ")
+	tokenJSObject, _ := json.Marshal(token) // Compact JSON for JavaScript parsing
+
+	data := struct {
+		TokenJSON     string
+		TokenJSObject string
+		Token         *oauth2.Token
+	}{
+		TokenJSON:     string(tokenJSON),
+		TokenJSObject: string(tokenJSObject),
+		Token:         token,
+	}
 
 	tmpl := template.Must(template.New("success").Parse(`<!DOCTYPE html>
 <html>
@@ -352,13 +363,13 @@ func renderSuccess(w http.ResponseWriter, token *oauth2.Token) {
         </div>
 
         <h3>Your Access Token:</h3>
-        <div class="token-box" id="token">{{.}}</div>
+        <div class="token-box" id="token">{{.TokenJSON}}</div>
 
         <button class="btn" onclick="copyToken()">📋 Copy Token</button>
         <span id="copied" style="color: green; margin-left: 10px; display: none;">✓ Copied!</span>
 
         <script>
-            const tokenData = {{.}};
+            const tokenData = JSON.parse('{{.TokenJSObject}}');
 
             // Try postMessage if opened as popup
             if (window.opener && !window.opener.closed) {
@@ -424,11 +435,11 @@ func renderSuccess(w http.ResponseWriter, token *oauth2.Token) {
         </script>
 
         <p style="margin-top: 30px; color: #666; font-size: 14px;">
-            <strong>Note:</strong> This token expires on {{.Expiry.Format "2006-01-02 15:04:05 MST"}}.
+            <strong>Note:</strong> This token expires on {{.Token.Expiry.Format "2006-01-02 15:04:05 MST"}}.
             Your PinShare instance will automatically refresh it as needed.
         </p>
     </div>
 </body>
 </html>`))
-	tmpl.Execute(w, string(tokenJSON))
+	tmpl.Execute(w, data)
 }

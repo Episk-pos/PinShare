@@ -2,7 +2,7 @@ import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { RefreshCw, CheckCircle, XCircle, Loader, AlertCircle } from 'lucide-react'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9090'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 function UploadStatus() {
   const { data: statuses, isLoading, error, refetch } = useQuery({

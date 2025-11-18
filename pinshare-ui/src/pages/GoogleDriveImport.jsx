@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 
 const OAUTH_BASE = import.meta.env.VITE_OAUTH_BASE || 'http://localhost:8888'
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9090'
+// Use relative path to leverage Vite proxy in dev, or absolute URL in production
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 export default function GoogleDriveImport() {
   const [authStatus, setAuthStatus] = useState(null)
