@@ -36,6 +36,8 @@ spec:
           env:
             - name: IPFS_API
               value: "http://ipfs-0.ipfs.pinshare.svc.cluster.local:5001"
+            - name: P2P_PUBLIC_ADDR
+              value: "/dns4/p2p.episkopos.community/tcp/50001"
 
           volumeMounts:
             - name: backend-data

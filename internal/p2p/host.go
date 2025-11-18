@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"sync"
 
 	"github.com/libp2p/go-libp2p"
@@ -14,6 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
+	"github.com/multiformats/go-multiaddr"
 	// "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	// "[github.com/libp2p/go-libp2p/p2p/discovery/mdns](https://github.com/libp2p/go-libp2p/p2p/discovery/mdns)" // Optional: for local discovery
 )
@@ -41,62 +43,44 @@ func NewHost(ctx context.Context, port int, privKey crypto.PrivKey) (host.Host, 
 	// For QUIC (UDP), you might use:
 	listenAddrUDP := fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", dynport)
 
-	h, err := libp2p.New(
+	// Build libp2p options
+	opts := []libp2p.Option{
 		libp2p.Identity(privKey),
 		libp2p.ListenAddrStrings(listenAddr),    // Listen on TCP
 		libp2p.ListenAddrStrings(listenAddrUDP), // Optionally listen on QUIC
 		libp2p.DefaultSecurity,                  // Use default security transports (TLS, Noise)
 		libp2p.DefaultMuxers,                    // Use default stream multiplexers (mplex, yamux)
-		libp2p.NATPortMap(),                     // Attempt to open ports using uPNP for NATed environments
-		libp2p.EnableHolePunching(),             // Enable hole punching for NAT traversal
-		libp2p.EnableRelayService(),             // Enable circuit relay v2 service
-		libp2p.EnableAutoNATv2(),                // Enable automatic NAT traversal
-		libp2p.EnableRelay(),                    // Enable circuit relay v1 service
-		// libp2p.EnableAutoRelay(),                // Use relays if the node is behind a NAT //BUG: deprecated
-		// libp2p.EnableAutoRelayWithPeerSource() // TODO:
-		// libp2p.EnableAutoRelayWithStaticRelays(), // TODO:
-
-		// libp2p.EnableAutoRelayWithPeerSource(func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {
-		// 	peerChan := make(chan peer.AddrInfo)
-		// 	go func() {
-		// 		defer close(peerChan)
-		// 		if kadDHT == nil {
-		// 			//bug: only ever hits this section, need to pass in the DHT properly //TODO:
-		// 			fmt.Println("[WARN] AutoRelay peer source called but DHT is not ready yet.")
-		// 			return
-		// 		}
-
-		// 		routingDiscovery := discovery_routing.NewRoutingDiscovery(kadDHT)
-
-		// 		relayTopic := MetadataTopicID                                                            // "/libp2p/circuit/relay/0.2.0/hop"                                          //
-		// 		peerInfoCh, err := util.FindPeers(ctx, routingDiscovery, relayTopic, discovery.Limit(1)) //TODO: need different or no topic or use ipfs network to find relay
-		// 		if err != nil {
-		// 			fmt.Printf("[WARN] Failed to find peers for autorelay: %v\n", err)
-		// 			return
-		// 		}
-
-		// 		for p := range peerInfoCh {
-		// 			fmt.Printf("[DEBUG] Found %s peers for autorelay.\n", peerInfoCh[p].Addrs)
-		// 			select {
-		// 			case peerChan <- peerInfoCh[p]:
-		// 			case <-ctx.Done():
-		// 				return
-		// 			}
-		// 		}
-		// 	}()
-		// 	fmt.Println("[INFO] AutoRelay completed call.")
-		// 	return peerChan
-		// }),
-
-		libp2p.EnableNATService(), // Help other peers discover their public address
+		libp2p.NATPortMap(),         // Attempt to open ports using uPNP for NATed environments
+		libp2p.EnableHolePunching(), // Enable hole punching for NAT traversal
+		libp2p.EnableRelayService(), // Enable circuit relay v2 service
+		libp2p.EnableAutoNATv2(),    // Enable automatic NAT traversal
+		libp2p.EnableRelay(),        // Enable circuit relay v1 service
+		libp2p.EnableNATService(),   // Help other peers discover their public address
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-			kadDHT, err := dht.New(ctx, h, dht.Mode(dht.ModeAutoServer)) // was dht.ModeServer
+			kadDHT, err := dht.New(ctx, h, dht.Mode(dht.ModeAutoServer))
 			if err != nil {
 				return nil, fmt.Errorf("failed to create DHT: %w", err)
 			}
 			return kadDHT, nil
 		}),
-	)
+	}
+
+	// Add public announce address if P2P_PUBLIC_ADDR is set
+	publicAddr := os.Getenv("P2P_PUBLIC_ADDR")
+	if publicAddr != "" {
+		fmt.Printf("[INFO] Configuring public announce address: %s\n", publicAddr)
+		announceAddr, err := multiaddr.NewMultiaddr(publicAddr)
+		if err != nil {
+			fmt.Printf("[WARN] Failed to parse P2P_PUBLIC_ADDR '%s': %v\n", publicAddr, err)
+		} else {
+			opts = append(opts, libp2p.AddrsFactory(func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
+				// Append the public address to the list of announced addresses
+				return append(addrs, announceAddr)
+			}))
+		}
+	}
+
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create libp2p host: %w", err)
 	}
