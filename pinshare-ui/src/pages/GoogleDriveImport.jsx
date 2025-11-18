@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const OAUTH_BASE = import.meta.env.VITE_OAUTH_BASE || 'http://localhost:8888'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9090'
 
 export default function GoogleDriveImport() {
   const [authStatus, setAuthStatus] = useState(null)
@@ -29,7 +30,7 @@ export default function GoogleDriveImport() {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch('/api/google-drive/auth-status')
+      const response = await fetch(`${API_BASE}/api/google-drive/auth-status`)
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -53,7 +54,7 @@ export default function GoogleDriveImport() {
 
   const handleAuthorize = async () => {
     try {
-      const response = await fetch('/api/google-drive/authorize', {
+      const response = await fetch(`${API_BASE}/api/google-drive/authorize`, {
         method: 'POST'
       })
       const data = await response.json()
@@ -67,7 +68,7 @@ export default function GoogleDriveImport() {
 
   const handleRevoke = async () => {
     try {
-      await fetch('/api/google-drive/revoke', {
+      await fetch(`${API_BASE}/api/google-drive/revoke`, {
         method: 'DELETE'
       })
       setAuthStatus(null)
@@ -91,7 +92,7 @@ export default function GoogleDriveImport() {
         return
       }
 
-      const response = await fetch('/api/google-drive/set-token', {
+      const response = await fetch(`${API_BASE}/api/google-drive/set-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -162,7 +163,7 @@ export default function GoogleDriveImport() {
 
       // Auto-submit token
       try {
-        const response = await fetch('/api/google-drive/set-token', {
+        const response = await fetch(`${API_BASE}/api/google-drive/set-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(event.data.token)
@@ -205,7 +206,7 @@ export default function GoogleDriveImport() {
       const params = new URLSearchParams()
       if (folderId) params.append('path', folderId)
 
-      const response = await fetch(`/api/google-drive/folders?${params}`)
+      const response = await fetch(`${API_BASE}/api/google-drive/folders?${params}`)
       if (!response.ok) throw new Error('Failed to load files')
 
       const data = await response.json()
@@ -272,7 +273,7 @@ export default function GoogleDriveImport() {
       const fileIds = files.filter(f => selectedFilesList.includes(f.id) && !f.isFolder).map(f => f.id)
       const folderIds = files.filter(f => selectedFilesList.includes(f.id) && f.isFolder).map(f => f.id)
 
-      const response = await fetch('/api/google-drive/preview-import', {
+      const response = await fetch(`${API_BASE}/api/google-drive/preview-import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -299,7 +300,7 @@ export default function GoogleDriveImport() {
       const fileIds = files.filter(f => selectedFilesList.includes(f.id) && !f.isFolder).map(f => f.id)
       const folderIds = files.filter(f => selectedFilesList.includes(f.id) && f.isFolder).map(f => f.id)
 
-      const response = await fetch('/api/google-drive/import', {
+      const response = await fetch(`${API_BASE}/api/google-drive/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
