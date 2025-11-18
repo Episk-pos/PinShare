@@ -10,7 +10,6 @@ export default defineConfig(({ mode }) => ({
         '/api': {
           target: process.env.VITE_PIN_SHARE_API || 'http://localhost:9090',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
         },
         '/ipfs-api': {
           target: process.env.VITE_IPFS_API || 'http://localhost:5001',
