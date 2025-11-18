@@ -10,14 +10,12 @@ services:
       - ./data:/opt/pinshare/data
     ports:
       - "9090:9090"  # PinShare API (required for UI)
-      - "8080:8080"  # IPFS Gateway (previews/content serving)
-      # Optional IPFS ports (uncomment for telemetry/previews)
-      - "5001:5001"  # IPFS API + Web UI (http://localhost:5001/webui)
-      # Optional P2P ports for full network connectivity (add if needed)
-      # - "4001:4001"
-      # - "4001:4001/udp"
       - "50001:50001"  # libp2p
+    depends_on:
+      - ipfs
     environment:
+      # IPFS Configuration
+      - IPFS_API=http://ipfs:5001
       # Secrets
       - VT_TOKEN=${VT_TOKEN:-REDACTED}  # Set your VirusTotal token if using API path
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -102,6 +100,20 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - REDIRECT_URL=http://localhost:8888/callback
       - PORT=8888
+    restart: unless-stopped
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: pinshare-ipfs
+    ports:
+      - "5001:5001"  # IPFS API + Web UI
+      - "8080:8080"  # IPFS Gateway
+      - "4001:4001"  # IPFS Swarm (P2P)
+      - "4001:4001/udp"
+    volumes:
+      - ./data/ipfs:/data/ipfs
+    environment:
+      - IPFS_PROFILE=server
     restart: unless-stopped
 
 networks:
