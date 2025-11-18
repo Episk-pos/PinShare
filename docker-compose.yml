@@ -16,13 +16,51 @@ services:
       # Optional P2P ports for full network connectivity (add if needed)
       # - "4001:4001"
       # - "4001:4001/udp"
-      # - "50001:50001"
+      - "50001:50001"  # libp2p
     environment:
-      - VT_TOKEN=REDACTED  # Set your VirusTotal token if using API path
+      # Secrets
+      - VT_TOKEN=${VT_TOKEN:-REDACTED}  # Set your VirusTotal token if using API path
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost:9090/api/google-drive/callback}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost:9090/api/v1/google-drive/callback}
       - PS_ENCRYPTION_KEY=${PS_ENCRYPTION_KEY:-12345678901234567890123456789012}  # 32-byte key for token encryption
+      - PS_ALLOWED_ORIGINS=${PS_ALLOWED_ORIGINS:-http://localhost:5174}  # CORS allowed origins
+
+      # Organization settings
+      - PS_ORGNAME=${PS_ORGNAME:-Cypherpunk}
+      - PS_GROUPNAME=${PS_GROUPNAME:-TestLab}
+
+      # Ports
+      - PS_LIBP2P_PORT=${PS_LIBP2P_PORT:-50001}
+
+      # Directories
+      - PS_UPLOAD_FOLDER=${PS_UPLOAD_FOLDER:-./upload}
+      - PS_CACHE_FOLDER=${PS_CACHE_FOLDER:-./cache}
+      - PS_REJECT_FOLDER=${PS_REJECT_FOLDER:-./rejected}
+      - PS_TEMP_DOWNLOAD_DIR=${PS_TEMP_DOWNLOAD_DIR:-./tmp/gdrive}
+
+      # Files
+      - PS_METADATA_FILE=${PS_METADATA_FILE:-metadata.json}
+      - PS_IDENTITY_KEY_FILE=${PS_IDENTITY_KEY_FILE:-identity.key}
+      - PS_DATABASE_FILE=${PS_DATABASE_FILE:-pinshare.db}
+
+      # Feature flags
+      - PS_FF_ARCHIVE_NODE=${PS_FF_ARCHIVE_NODE:-false}
+      - PS_FF_CACHE=${PS_FF_CACHE:-true}
+      - PS_FF_MOVE_UPLOAD=${PS_FF_MOVE_UPLOAD:-false}
+      - PS_FF_SENDFILE_VT=${PS_FF_SENDFILE_VT:-false}
+      - PS_FF_SKIP_VT=${PS_FF_SKIP_VT:-true}
+      - PS_FF_IGNORE_UPLOADS_IN_METADATA=${PS_FF_IGNORE_UPLOADS_IN_METADATA:-false}
+
+      # Google Drive import settings
+      - PS_MAX_CONCURRENT_JOBS=${PS_MAX_CONCURRENT_JOBS:-3}
+      - PS_MAX_FILE_SIZE_MB=${PS_MAX_FILE_SIZE_MB:-1024}
+    deploy:
+      resources:
+        limits:
+          memory: 2G  # Increased for ClamAV virus scanner
+        reservations:
+          memory: 512M
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9090/health"]  # Add /health endpoint if needed, or use IPFS check
@@ -45,9 +83,11 @@ services:
     depends_on:
       - pinshare
     environment:
-      - VITE_PIN_SHARE_API=http://pinshare:9090
-      - VITE_IPFS_API=http://pinshare:5001
-      - VITE_GATEWAY_BASE=http://localhost:8080/ipfs  # Host gateway for previews
+      # Use absolute URLs to backend (http://localhost:9090 from browser perspective)
+      - VITE_API_BASE=http://localhost:9090
+      - VITE_GATEWAY_BASE=http://localhost:8080/ipfs
+      - VITE_IPFS_API_BASE=http://localhost:5001/api/v0
+      - VITE_OAUTH_BASE=http://localhost:8888
     restart: unless-stopped
 
   oauth-broker:
