@@ -358,6 +358,61 @@ func renderSuccess(w http.ResponseWriter, token *oauth2.Token) {
         <span id="copied" style="color: green; margin-left: 10px; display: none;">✓ Copied!</span>
 
         <script>
+            const tokenData = {{.}};
+
+            // Try postMessage if opened as popup
+            if (window.opener && !window.opener.closed) {
+                tryPostMessage();
+            } else {
+                showCopyPasteUI();
+            }
+
+            function tryPostMessage() {
+                const message = {
+                    type: 'PINSHARE_OAUTH_TOKEN',
+                    token: tokenData,
+                    source: 'pinshare-oauth-broker'
+                };
+
+                // Send to opener (frontend) - receiver will validate origin
+                window.opener.postMessage(message, '*');
+
+                // Wait for acknowledgment
+                let acknowledged = false;
+                const handleAck = (event) => {
+                    if (event.data && event.data.type === 'PINSHARE_TOKEN_RECEIVED') {
+                        acknowledged = true;
+                        window.removeEventListener('message', handleAck);
+
+                        // Show success and close
+                        document.querySelector('.container').innerHTML = `
+                            <div class="success">
+                                <h2>✓ Token Sent Successfully!</h2>
+                                <p>Closing window...</p>
+                            </div>
+                        `;
+                        setTimeout(() => window.close(), 1000);
+                    }
+                };
+
+                window.addEventListener('message', handleAck);
+
+                // Timeout after 5 seconds - fallback to copy/paste
+                setTimeout(() => {
+                    if (!acknowledged) {
+                        window.removeEventListener('message', handleAck);
+                        showCopyPasteUI();
+                    }
+                }, 5000);
+            }
+
+            function showCopyPasteUI() {
+                // UI is already visible, just ensure it's shown
+                document.querySelector('.instructions').style.display = 'block';
+                document.querySelector('.token-box').style.display = 'block';
+                document.querySelector('.btn').style.display = 'inline-block';
+            }
+
             function copyToken() {
                 const tokenText = document.getElementById('token').textContent;
                 navigator.clipboard.writeText(tokenText).then(() => {

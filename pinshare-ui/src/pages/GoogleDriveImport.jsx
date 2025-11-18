@@ -114,8 +114,89 @@ export default function GoogleDriveImport() {
   }
 
   const openOAuthBroker = () => {
-    window.open(OAUTH_BASE, '_blank')
-    setShowTokenPaste(true)
+    const brokerUrl = `${OAUTH_BASE}/authorize`
+
+    // Open in popup instead of new tab
+    const popup = window.open(
+      brokerUrl,
+      'pinshare-oauth',
+      'width=600,height=700,scrollbars=yes'
+    )
+
+    if (!popup || popup.closed) {
+      // Popup blocked - show instructions
+      setError('Please allow popups for automatic token flow, or use the manual copy/paste method below.')
+      setShowTokenPaste(true)
+      return
+    }
+
+    // Set up postMessage listener
+    let messageHandlerActive = true
+    const handleMessage = async (event) => {
+      if (!messageHandlerActive) return
+
+      // Validate origin
+      const allowedOrigin = new URL(OAUTH_BASE).origin
+      if (event.origin !== allowedOrigin) {
+        console.warn('Received message from unexpected origin:', event.origin)
+        return
+      }
+
+      // Validate message structure
+      if (event.data?.type !== 'PINSHARE_OAUTH_TOKEN' ||
+          event.data?.source !== 'pinshare-oauth-broker') {
+        return
+      }
+
+      // Send acknowledgment
+      try {
+        popup.postMessage({ type: 'PINSHARE_TOKEN_RECEIVED' }, allowedOrigin)
+      } catch (err) {
+        console.error('Failed to send acknowledgment:', err)
+      }
+
+      // Clean up listener
+      messageHandlerActive = false
+      window.removeEventListener('message', handleMessage)
+      clearTimeout(timeoutId)
+
+      // Auto-submit token
+      try {
+        const response = await fetch('/api/google-drive/set-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(event.data.token)
+        })
+
+        if (response.ok) {
+          setError(null)
+          await checkAuthStatus()
+          setShowTokenPaste(false)
+          try {
+            popup.close()
+          } catch (err) {
+            // Ignore if popup already closed
+          }
+        } else {
+          throw new Error('Token validation failed')
+        }
+      } catch (err) {
+        setError('Error storing token: ' + err.message)
+        setShowTokenPaste(true)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+
+    // Timeout after 30 seconds
+    const timeoutId = setTimeout(() => {
+      if (messageHandlerActive) {
+        messageHandlerActive = false
+        window.removeEventListener('message', handleMessage)
+        setError('Token auto-forward timed out. Please use the manual copy/paste method.')
+        setShowTokenPaste(true)
+      }
+    }, 30000)
   }
 
   const loadFiles = async (folderId = '') => {
