@@ -22,7 +22,13 @@
       "Bash(kubectl exec:*)",
       "Bash(tilt logs:*)",
       "Bash(git add:*)",
-      "Bash(sops --set:*)"
+      "Bash(sops --set:*)",
+      "Bash(tilt trigger:*)",
+      "Bash(tilt get:*)",
+      "Bash(kubectl kustomize:*)",
+      "Bash(tilt args:*)",
+      "Bash(find:*)",
+      "Bash(docker images:*)"
     ],
     "deny": [],
     "ask": []
