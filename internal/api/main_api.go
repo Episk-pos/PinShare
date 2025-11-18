@@ -407,9 +407,13 @@ func corsMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
+		log.Printf("[CORS DEBUG] Origin: %q, AllowedOrigins: %v", origin, allowedOrigins)
+
 		// Check if origin is in allowed list
 		for _, allowed := range allowedOrigins {
+			log.Printf("[CORS DEBUG] Comparing origin %q with allowed %q", origin, allowed)
 			if origin == allowed {
+				log.Printf("[CORS DEBUG] MATCH! Setting Access-Control-Allow-Origin to %q", origin)
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				break
 			}
