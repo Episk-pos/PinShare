@@ -10,6 +10,8 @@ export default function GoogleDriveImport() {
   const [showTokenPaste, setShowTokenPaste] = useState(false)
   const [tokenInput, setTokenInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [oauthStatus, setOauthStatus] = useState(null) // null, 'waiting', 'popup-blocked', 'timeout'
+  const [showManualHint, setShowManualHint] = useState(false)
 
   // File browser state
   const [showBrowser, setShowBrowser] = useState(false)
@@ -117,7 +119,12 @@ export default function GoogleDriveImport() {
   const openOAuthBroker = () => {
     const brokerUrl = `${OAUTH_BASE}/authorize`
 
-    // Open in popup instead of new tab
+    // Reset state
+    setError(null)
+    setShowTokenPaste(false)
+    setShowManualHint(false)
+
+    // Open in popup
     const popup = window.open(
       brokerUrl,
       'pinshare-oauth',
@@ -125,11 +132,13 @@ export default function GoogleDriveImport() {
     )
 
     if (!popup || popup.closed) {
-      // Popup blocked - show instructions
-      setError('Please allow popups for automatic token flow, or use the manual copy/paste method below.')
-      setShowTokenPaste(true)
+      // Popup blocked - show options
+      setOauthStatus('popup-blocked')
       return
     }
+
+    // Popup opened successfully - show waiting status
+    setOauthStatus('waiting')
 
     // Set up postMessage listener
     let messageHandlerActive = true
@@ -160,6 +169,7 @@ export default function GoogleDriveImport() {
       messageHandlerActive = false
       window.removeEventListener('message', handleMessage)
       clearTimeout(timeoutId)
+      clearTimeout(hintTimeoutId)
 
       // Auto-submit token
       try {
@@ -171,8 +181,9 @@ export default function GoogleDriveImport() {
 
         if (response.ok) {
           setError(null)
+          setOauthStatus(null)
+          setShowManualHint(false)
           await checkAuthStatus()
-          setShowTokenPaste(false)
           try {
             popup.close()
           } catch (err) {
@@ -183,19 +194,34 @@ export default function GoogleDriveImport() {
         }
       } catch (err) {
         setError('Error storing token: ' + err.message)
-        setShowTokenPaste(true)
+        setOauthStatus(null)
       }
     }
 
     window.addEventListener('message', handleMessage)
 
-    // Timeout after 30 seconds - just cleanup, don't show error since manual option is already visible
+    // After 10 seconds, show hint for manual copy/paste
+    const hintTimeoutId = setTimeout(() => {
+      if (messageHandlerActive) {
+        setShowManualHint(true)
+      }
+    }, 10000)
+
+    // Cleanup after 30 seconds
     const timeoutId = setTimeout(() => {
       if (messageHandlerActive) {
         messageHandlerActive = false
         window.removeEventListener('message', handleMessage)
+        setOauthStatus('timeout')
       }
     }, 30000)
+  }
+
+  const openOAuthBrokerInNewTab = () => {
+    const brokerUrl = `${OAUTH_BASE}/authorize`
+    window.open(brokerUrl, '_blank')
+    setShowTokenPaste(true)
+    setOauthStatus(null)
   }
 
   const loadFiles = async (folderId = '') => {
@@ -386,19 +412,61 @@ export default function GoogleDriveImport() {
               </p>
               <button
                 onClick={openOAuthBroker}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+                disabled={oauthStatus === 'waiting'}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded disabled:bg-blue-400"
               >
-                Get Token from OAuth Broker
+                {oauthStatus === 'waiting' ? 'Authorizing with Google...' : 'Get Token from OAuth Broker'}
               </button>
-              <div className="mt-2">
-                <button
-                  onClick={() => setShowTokenPaste(true)}
-                  className="text-sm text-blue-600 hover:text-blue-800 underline"
-                >
-                  (or copy/paste your token)
-                </button>
-              </div>
 
+              {/* Popup blocked - show options */}
+              {oauthStatus === 'popup-blocked' && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded">
+                  <p className="text-yellow-800 font-semibold mb-2">Popup was blocked</p>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    Please allow popups for this site and try again, or use the manual method:
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={openOAuthBroker}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm"
+                    >
+                      Try Again
+                    </button>
+                    <button
+                      onClick={openOAuthBrokerInNewTab}
+                      className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded text-sm"
+                    >
+                      Open in New Tab (Manual Copy)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Waiting for postMessage - show hint after delay */}
+              {oauthStatus === 'waiting' && showManualHint && (
+                <div className="mt-3 p-3 bg-blue-100 border border-blue-300 rounded">
+                  <p className="text-sm text-blue-800">
+                    Taking longer than expected? {' '}
+                    <button
+                      onClick={() => setShowTokenPaste(true)}
+                      className="text-blue-600 hover:text-blue-800 underline font-medium"
+                    >
+                      Click here if you need to copy/paste manually
+                    </button>
+                  </p>
+                </div>
+              )}
+
+              {/* Timeout */}
+              {oauthStatus === 'timeout' && (
+                <div className="mt-3 p-3 bg-orange-100 border border-orange-300 rounded">
+                  <p className="text-sm text-orange-800">
+                    Connection timed out. Please try again or use manual copy/paste.
+                  </p>
+                </div>
+              )}
+
+              {/* Manual token paste area */}
               {showTokenPaste && (
                 <div className="mt-4 p-4 bg-white rounded border border-blue-300">
                   <h4 className="font-semibold text-blue-900 mb-2">Paste Your Token:</h4>
