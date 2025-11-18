@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -15,9 +16,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
+	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	"github.com/multiformats/go-multiaddr"
-	// "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	// "[github.com/libp2p/go-libp2p/p2p/discovery/mdns](https://github.com/libp2p/go-libp2p/p2p/discovery/mdns)" // Optional: for local discovery
 )
 
 const DirectMessageProtocolID = "/pinshare/dm/1.0.0"
@@ -44,6 +44,7 @@ func NewHost(ctx context.Context, port int, privKey crypto.PrivKey) (host.Host, 
 	listenAddrUDP := fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", dynport)
 
 	// Build libp2p options
+	var kadDHT *dht.IpfsDHT // Store DHT reference for autorelay
 	opts := []libp2p.Option{
 		libp2p.Identity(privKey),
 		libp2p.ListenAddrStrings(listenAddr),    // Listen on TCP
@@ -54,15 +55,26 @@ func NewHost(ctx context.Context, port int, privKey crypto.PrivKey) (host.Host, 
 		libp2p.EnableHolePunching(), // Enable hole punching for NAT traversal
 		libp2p.EnableRelayService(), // Enable circuit relay v2 service
 		libp2p.EnableAutoNATv2(),    // Enable automatic NAT traversal
-		libp2p.EnableRelay(),        // Enable circuit relay v1 service
+		libp2p.EnableRelay(),        // Enable circuit relay v1 client
 		libp2p.EnableNATService(),   // Help other peers discover their public address
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-			kadDHT, err := dht.New(ctx, h, dht.Mode(dht.ModeAutoServer))
+			var err error
+			kadDHT, err = dht.New(ctx, h, dht.Mode(dht.ModeAutoServer))
 			if err != nil {
 				return nil, fmt.Errorf("failed to create DHT: %w", err)
 			}
 			return kadDHT, nil
 		}),
+		// Enable autorelay to automatically find and use relay nodes
+		libp2p.EnableAutoRelayWithPeerSource(
+			func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {
+				return findRelayPeers(ctx, kadDHT, numPeers)
+			},
+			autorelay.WithMinCandidates(4),
+			autorelay.WithMaxCandidates(8),
+			autorelay.WithBootDelay(30*time.Second),
+			autorelay.WithMinInterval(time.Minute),
+		),
 	}
 
 	// Add public announce address if P2P_PUBLIC_ADDR is set
@@ -187,4 +199,56 @@ func SetDirectMessageHandler(h host.Host) {
 	}
 	h.SetStreamHandler(DirectMessageProtocolID, streamHandler)
 	fmt.Printf("[INFO] Direct message handler registered for protocol: %s\n", DirectMessageProtocolID)
+}
+
+// findRelayPeers finds relay-capable peers from the DHT
+func findRelayPeers(ctx context.Context, kadDHT *dht.IpfsDHT, numPeers int) <-chan peer.AddrInfo {
+	peerChan := make(chan peer.AddrInfo, numPeers)
+
+	go func() {
+		defer close(peerChan)
+
+		// Wait for DHT to be ready
+		if kadDHT == nil {
+			fmt.Println("[RELAY] DHT not initialized yet, waiting...")
+			time.Sleep(5 * time.Second)
+			if kadDHT == nil {
+				fmt.Println("[RELAY] DHT still not ready, aborting relay peer discovery")
+				return
+			}
+		}
+
+		fmt.Printf("[RELAY] Looking for %d relay candidates from DHT...\n", numPeers)
+
+		// Get connected peers from the DHT routing table
+		peers := kadDHT.RoutingTable().ListPeers()
+		found := 0
+
+		for _, p := range peers {
+			if found >= numPeers {
+				break
+			}
+
+			// Get peer's addresses from peerstore
+			addrs := kadDHT.Host().Peerstore().Addrs(p)
+			if len(addrs) > 0 {
+				peerInfo := peer.AddrInfo{
+					ID:    p,
+					Addrs: addrs,
+				}
+
+				select {
+				case peerChan <- peerInfo:
+					found++
+					fmt.Printf("[RELAY] Found relay candidate: %s\n", p.String())
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+
+		fmt.Printf("[RELAY] Relay peer discovery complete: found %d candidates\n", found)
+	}()
+
+	return peerChan
 }
