@@ -172,13 +172,27 @@ func (d *PubSubManager) DiscoverPeers(ctx context.Context, findPeersInterval tim
 					continue
 				}
 
-				if d.host.Network().Connectedness(peerInfo.ID) != network.Connected {
+				connectedness := d.host.Network().Connectedness(peerInfo.ID)
+				fmt.Printf("[PUBSUB DEBUG] Peer %s connectedness status: %s\n", peerInfo.ID.String(), connectedness.String())
+
+				if connectedness != network.Connected {
 					fmt.Printf("[PUBSUB] Found new peer %s for topic %s. Attempting to connect.\n     multi-addr: %s \n", peerInfo.ID.String(), d.psc.TopicID, peerInfo.Addrs)
-					if err := d.host.Connect(ctx, peerInfo); err != nil {
-						// fmt.Printf("[PUBSUB WARN] Failed to connect to discovered peer %s: %v\n", peerInfo.ID.String(), err)
-					} else {
-						fmt.Printf("[PUBSUB] Successfully connected to peer %s for topic %s.\n", peerInfo.ID.String(), d.psc.TopicID)
-					}
+
+					// Create a function to handle the connection with proper cleanup
+					func() {
+						connectCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+						defer cancel()
+
+						fmt.Printf("[PUBSUB DEBUG] About to call Connect for peer %s\n", peerInfo.ID.String())
+						if err := d.host.Connect(connectCtx, peerInfo); err != nil {
+							fmt.Printf("[PUBSUB WARN] Failed to connect to discovered peer %s: %v\n", peerInfo.ID.String(), err)
+						} else {
+							fmt.Printf("[PUBSUB] Successfully connected to peer %s for topic %s.\n", peerInfo.ID.String(), d.psc.TopicID)
+						}
+						fmt.Printf("[PUBSUB DEBUG] Finished Connect call for peer %s\n", peerInfo.ID.String())
+					}()
+				} else {
+					fmt.Printf("[PUBSUB DEBUG] Peer %s is already connected, skipping connection attempt\n", peerInfo.ID.String())
 				}
 			}
 			fmt.Printf("[PUBSUB] Finished a round of finding peers for topic %s.\n", d.psc.TopicID)

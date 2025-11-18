@@ -3,46 +3,99 @@ package psfs
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"strings"
+	"os"
+	"sync"
+
+	shell "github.com/ipfs/go-ipfs-api"
 )
 
+var (
+	ipfsClient *shell.Shell
+	clientOnce sync.Once
+	clientErr  error
+)
+
+// getIPFSClient returns a singleton IPFS HTTP API client
+func getIPFSClient() (*shell.Shell, error) {
+	clientOnce.Do(func() {
+		apiURL := os.Getenv("IPFS_API")
+		if apiURL == "" {
+			apiURL = "http://localhost:5001"
+		}
+
+		// Create shell client
+		ipfsClient = shell.NewShell(apiURL)
+		if ipfsClient == nil {
+			clientErr = fmt.Errorf("failed to create IPFS client for %s", apiURL)
+		}
+	})
+	return ipfsClient, clientErr
+}
+
 // execute this cmd ipfs add  --cid-version 1 --raw-leaves gt256kb.txt -Q
-func AddFileIPFS(ctx context.Context, path string) (string, error) {
-	out, err := exec.CommandContext(ctx, "ipfs", "add", "--cid-version", "1", "--raw-leaves", path, "-Q").Output()
+func AddFileIPFS(ctx context.Context, filePath string) (string, error) {
+	client, err := getIPFSClient()
+	if err != nil {
+		return "", err
+	}
+
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Add file to IPFS with options: CIDv1 and raw leaves
+	cid, err := client.Add(file, shell.CidVersion(1), shell.RawLeaves(true))
 	if err != nil {
 		return "", fmt.Errorf("ipfs add failed: %w", err)
 	}
-	// fmt.Println(strings.TrimSpace(string(out)))
-	return strings.TrimSpace(string(out)), nil
+
+	return cid, nil
 }
 
-func GetFileIPFS(cid string, filepath string) {
-	// ipfs get bafkreib566otjk54vgjqrz44xfcgdqmjgwbgatligkned7kl5qmilzvnwq  -o test.pdf
-	out, err := exec.Command("ipfs", "get", cid, "-o", filepath, "--progress=false").Output()
+func GetFileIPFS(cidStr string, filepath string) error {
+	client, err := getIPFSClient()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
-	if out != nil {
+
+	// Get the file from IPFS
+	err = client.Get(cidStr, filepath)
+	if err != nil {
+		return fmt.Errorf("ipfs get failed: %w", err)
 	}
+
+	return nil
 }
 
-func PinFileIPFS(cid string) {
-	// ipfs pin add <ipfs-path>...
-	out, err := exec.Command("ipfs", "pin", "add", cid).Output()
+func PinFileIPFS(cidStr string) error {
+	client, err := getIPFSClient()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
-	if out != nil {
+
+	// Pin the file
+	err = client.Pin(cidStr)
+	if err != nil {
+		return fmt.Errorf("ipfs pin add failed: %w", err)
 	}
+
+	return nil
 }
 
-func UnpinFileIPFS(cid string) {
-	// ipfs pin rm <ipfs-path>...
-	out, err := exec.Command("ipfs", "pin", "rm", cid).Output()
+func UnpinFileIPFS(cidStr string) error {
+	client, err := getIPFSClient()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
-	if out != nil {
+
+	// Unpin the file
+	err = client.Unpin(cidStr)
+	if err != nil {
+		return fmt.Errorf("ipfs pin rm failed: %w", err)
 	}
+
+	return nil
 }

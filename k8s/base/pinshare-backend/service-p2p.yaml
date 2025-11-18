@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinshare-backend-p2p
+  namespace: pinshare
+  labels:
+    app: pinshare-backend
+spec:
+  type: LoadBalancer
+  selector:
+    app: pinshare-backend
+  ports:
+    - name: libp2p-tcp
+      port: 50001
+      targetPort: 50001
+      protocol: TCP
+    - name: libp2p-udp
+      port: 50001
+      targetPort: 50001
+      protocol: UDP

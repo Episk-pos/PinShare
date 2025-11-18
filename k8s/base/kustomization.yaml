@@ -17,6 +17,7 @@ resources:
   - pinshare-backend/deployment.yaml
   - pinshare-backend/pvc.yaml
   - pinshare-backend/service.yaml
+  - pinshare-backend/service-p2p.yaml
 
   # PinShare UI
   - pinshare-ui/deployment.yaml
