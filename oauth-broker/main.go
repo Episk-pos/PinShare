@@ -385,12 +385,11 @@ func renderSuccess(w http.ResponseWriter, token *oauth2.Token) {
                         window.removeEventListener('message', handleAck);
 
                         // Show success and close
-                        document.querySelector('.container').innerHTML = `
-                            <div class="success">
-                                <h2>✓ Token Sent Successfully!</h2>
-                                <p>Closing window...</p>
-                            </div>
-                        `;
+                        document.querySelector('.container').innerHTML =
+                            '<div class="success">' +
+                            '<h2>✓ Token Sent Successfully!</h2>' +
+                            '<p>Closing window...</p>' +
+                            '</div>';
                         setTimeout(() => window.close(), 1000);
                     }
                 };

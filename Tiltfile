@@ -21,7 +21,7 @@ k8s_yaml(local('sops --decrypt k8s/overlays/dev/oauth-broker-secret.yaml'))
 # Backend
 # Note: live_update disabled for multi-stage builds as Go is not available in runtime stage
 docker_build(
-    'pinshare-backend',
+    'ghcr.io/episk-pos/pinshare-backend',
     '.',
     dockerfile='Dockerfile',
     ignore=['pinshare-ui/', 'oauth-broker/', 'k8s/', '.git/'],
@@ -29,7 +29,7 @@ docker_build(
 
 # UI - Development mode with Vite hot reload
 docker_build(
-    'pinshare-ui',
+    'ghcr.io/episk-pos/pinshare-ui',
     './pinshare-ui',
     dockerfile='./pinshare-ui/Dockerfile',
     target='development',
@@ -50,7 +50,7 @@ docker_build(
 
 # OAuth Broker
 docker_build(
-    'oauth-broker',
+    'ghcr.io/episk-pos/oauth-broker',
     './oauth-broker',
     dockerfile='./oauth-broker/Dockerfile',
     live_update=[
