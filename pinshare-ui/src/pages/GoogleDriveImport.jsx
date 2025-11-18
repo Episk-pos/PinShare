@@ -189,13 +189,11 @@ export default function GoogleDriveImport() {
 
     window.addEventListener('message', handleMessage)
 
-    // Timeout after 30 seconds
+    // Timeout after 30 seconds - just cleanup, don't show error since manual option is already visible
     const timeoutId = setTimeout(() => {
       if (messageHandlerActive) {
         messageHandlerActive = false
         window.removeEventListener('message', handleMessage)
-        setError('Token auto-forward timed out. Please use the manual copy/paste method.')
-        setShowTokenPaste(true)
       }
     }, 30000)
   }
@@ -388,10 +386,18 @@ export default function GoogleDriveImport() {
               </p>
               <button
                 onClick={openOAuthBroker}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded mb-3"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
               >
                 Get Token from OAuth Broker
               </button>
+              <div className="mt-2">
+                <button
+                  onClick={() => setShowTokenPaste(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  (or copy/paste your token)
+                </button>
+              </div>
 
               {showTokenPaste && (
                 <div className="mt-4 p-4 bg-white rounded border border-blue-300">
