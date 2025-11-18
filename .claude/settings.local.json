@@ -11,7 +11,18 @@
       "Bash(docker compose:*)",
       "Bash(go mod tidy:*)",
       "Bash(gh issue view:*)",
-      "Bash(gh issue list:*)"
+      "Bash(gh issue list:*)",
+      "Bash(tilt up:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(tilt down:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl exec:*)",
+      "Bash(tilt logs:*)",
+      "Bash(git add:*)",
+      "Bash(sops --set:*)"
     ],
     "deny": [],
     "ask": []
