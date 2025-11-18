@@ -33,7 +33,7 @@ export default function GoogleDriveImport() {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/google-drive/auth-status`)
+      const response = await fetch(`${API_BASE}/api/v1/google-drive/auth-status`)
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -57,7 +57,7 @@ export default function GoogleDriveImport() {
 
   const handleAuthorize = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/google-drive/authorize`, {
+      const response = await fetch(`${API_BASE}/api/v1/google-drive/authorize`, {
         method: 'POST'
       })
       const data = await response.json()
@@ -71,7 +71,7 @@ export default function GoogleDriveImport() {
 
   const handleRevoke = async () => {
     try {
-      await fetch(`${API_BASE}/api/google-drive/revoke`, {
+      await fetch(`${API_BASE}/api/v1/google-drive/revoke`, {
         method: 'DELETE'
       })
       setAuthStatus(null)
@@ -95,7 +95,7 @@ export default function GoogleDriveImport() {
         return
       }
 
-      const response = await fetch(`${API_BASE}/api/google-drive/set-token`, {
+      const response = await fetch(`${API_BASE}/api/v1/google-drive/set-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -174,7 +174,7 @@ export default function GoogleDriveImport() {
 
       // Auto-submit token
       try {
-        const response = await fetch(`${API_BASE}/api/google-drive/set-token`, {
+        const response = await fetch(`${API_BASE}/api/v1/google-drive/set-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(event.data.token)
@@ -231,7 +231,7 @@ export default function GoogleDriveImport() {
       const params = new URLSearchParams()
       if (folderId) params.append('path', folderId)
 
-      const response = await fetch(`${API_BASE}/api/google-drive/folders?${params}`)
+      const response = await fetch(`${API_BASE}/api/v1/google-drive/folders?${params}`)
       if (!response.ok) throw new Error('Failed to load files')
 
       const data = await response.json()
@@ -298,7 +298,7 @@ export default function GoogleDriveImport() {
       const fileIds = files.filter(f => selectedFilesList.includes(f.id) && !f.isFolder).map(f => f.id)
       const folderIds = files.filter(f => selectedFilesList.includes(f.id) && f.isFolder).map(f => f.id)
 
-      const response = await fetch(`${API_BASE}/api/google-drive/preview-import`, {
+      const response = await fetch(`${API_BASE}/api/v1/google-drive/preview-import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -325,7 +325,7 @@ export default function GoogleDriveImport() {
       const fileIds = files.filter(f => selectedFilesList.includes(f.id) && !f.isFolder).map(f => f.id)
       const folderIds = files.filter(f => selectedFilesList.includes(f.id) && f.isFolder).map(f => f.id)
 
-      const response = await fetch(`${API_BASE}/api/google-drive/import`, {
+      const response = await fetch(`${API_BASE}/api/v1/google-drive/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -389,7 +389,7 @@ export default function GoogleDriveImport() {
                       <li>Create a Google Cloud Project at <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">console.cloud.google.com</a></li>
                       <li>Enable the Google Drive API</li>
                       <li>Create OAuth 2.0 credentials (Web application type)</li>
-                      <li>Add authorized redirect URI: <code className="bg-yellow-100 px-1 rounded">http://localhost:9090/api/google-drive/callback</code></li>
+                      <li>Add authorized redirect URI: <code className="bg-yellow-100 px-1 rounded">http://localhost:9090/api/v1/google-drive/callback</code></li>
                       <li>Copy credentials to <code className="bg-yellow-100 px-1 rounded">.env</code> file or docker-compose.yml environment variables</li>
                     </ol>
                     <p className="mt-2 text-xs">See <code className="bg-yellow-100 px-1 rounded">.env.example</code> for complete configuration details.</p>

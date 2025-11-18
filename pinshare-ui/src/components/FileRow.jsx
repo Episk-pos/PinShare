@@ -3,6 +3,7 @@ import { ExternalLink, Download, Pin, AlertTriangle, Tag, Copy } from 'lucide-re
 import toast from 'react-hot-toast'
 import { Badge } from './Badge.jsx'
 
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 const GATEWAY_BASE = import.meta.env.VITE_GATEWAY_BASE || 'http://localhost:8080/ipfs'
 const IPFS_API_BASE = import.meta.env.VITE_IPFS_API_BASE || 'http://localhost:5001/api/v0'
 
@@ -64,7 +65,7 @@ function FileRow({ file }) {
 
   const handlePin = async () => {
     try {
-      const response = await fetch(`/api/ipfs/pin/${file.ipfsCID}`, {
+      const response = await fetch(`${API_BASE}/api/v1/ipfs/pin/${file.ipfsCID}`, {
         method: 'POST',
       })
       if (response.ok) {

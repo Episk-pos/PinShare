@@ -8,7 +8,7 @@ function UploadStatus() {
   const { data: statuses, isLoading, error, refetch } = useQuery({
     queryKey: ['uploadStatus'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/api/upload-status`)
+      const response = await fetch(`${API_BASE}/api/v1/upload-status`)
       if (!response.ok) throw new Error('Failed to fetch upload status')
       return response.json()
     },

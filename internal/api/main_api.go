@@ -447,15 +447,15 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 
 	// Create a new ServeMux to combine the API handler and metrics handler
 	mux := http.NewServeMux()
-	mux.Handle("/api/", apiHandler)
+	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", apiHandler))
 	mux.Handle("/metrics", promhttp.Handler())
 	// TODO: Disabled until p2p.GetPubSubManager() is implemented
-	// mux.HandleFunc("/api/p2p/topic-peers", server.ListTopicPeers)
+	// mux.HandleFunc("/api/v1/p2p/topic-peers", server.ListTopicPeers)
 	mux.HandleFunc("/health", server.Health)
-	mux.HandleFunc("/api/upload-status", server.GetUploadStatus)
-	mux.HandleFunc("/api/upload-status/active", server.GetActiveUploadStatus)
-	mux.HandleFunc("/api/upload-status/", server.CancelUpload) // Handles /api/upload-status/{fileName}/cancel
-	mux.HandleFunc("/api/ipfs/pin/", server.PinContent)
+	mux.HandleFunc("/api/v1/upload-status", server.GetUploadStatus)
+	mux.HandleFunc("/api/v1/upload-status/active", server.GetActiveUploadStatus)
+	mux.HandleFunc("/api/v1/upload-status/", server.CancelUpload) // Handles /api/v1/upload-status/{fileName}/cancel
+	mux.HandleFunc("/api/v1/ipfs/pin/", server.PinContent)
 	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 
 	// Add Google Drive import routes if server is configured
@@ -463,24 +463,24 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 		log.Println("[INFO] Registering Google Drive import API routes")
 
 		// OAuth routes
-		mux.HandleFunc("/api/google-drive/authorize", gdriveServer.AuthorizeRequest)
-		mux.HandleFunc("/api/google-drive/callback", gdriveServer.CallbackRequest)
-		mux.HandleFunc("/api/google-drive/set-token", gdriveServer.SetToken)
-		mux.HandleFunc("/api/google-drive/auth-status", gdriveServer.GetAuthStatus)
-		mux.HandleFunc("/api/google-drive/revoke", gdriveServer.RevokeAccess)
+		mux.HandleFunc("/api/v1/google-drive/authorize", gdriveServer.AuthorizeRequest)
+		mux.HandleFunc("/api/v1/google-drive/callback", gdriveServer.CallbackRequest)
+		mux.HandleFunc("/api/v1/google-drive/set-token", gdriveServer.SetToken)
+		mux.HandleFunc("/api/v1/google-drive/auth-status", gdriveServer.GetAuthStatus)
+		mux.HandleFunc("/api/v1/google-drive/revoke", gdriveServer.RevokeAccess)
 
 		// Drive operations routes
-		mux.HandleFunc("/api/google-drive/folders", gdriveServer.ListFolders)
-		mux.HandleFunc("/api/google-drive/preview-import", gdriveServer.PreviewImport)
-		mux.HandleFunc("/api/google-drive/import", gdriveServer.StartImport)
-		mux.HandleFunc("/api/google-drive/import/history", gdriveServer.GetImportHistory)
+		mux.HandleFunc("/api/v1/google-drive/folders", gdriveServer.ListFolders)
+		mux.HandleFunc("/api/v1/google-drive/preview-import", gdriveServer.PreviewImport)
+		mux.HandleFunc("/api/v1/google-drive/import", gdriveServer.StartImport)
+		mux.HandleFunc("/api/v1/google-drive/import/history", gdriveServer.GetImportHistory)
 
 		// Job status route (pattern matching for job ID)
-		mux.HandleFunc("/api/google-drive/import/", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/api/v1/google-drive/import/", func(w http.ResponseWriter, r *http.Request) {
 			// Extract job ID from path
 			path := r.URL.Path
-			if len(path) > len("/api/google-drive/import/") {
-				jobID := path[len("/api/google-drive/import/"):]
+			if len(path) > len("/api/v1/google-drive/import/") {
+				jobID := path[len("/api/v1/google-drive/import/"):]
 				// Check if it ends with /status
 				if len(jobID) > 7 && jobID[len(jobID)-7:] == "/status" {
 					jobID = jobID[:len(jobID)-7]
