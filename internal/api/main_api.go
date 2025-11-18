@@ -447,14 +447,14 @@ func Start(ctx context.Context, node host.Host, gdriveServer *GDriveServer) {
 
 	// Create a new ServeMux to combine the API handler and metrics handler
 	mux := http.NewServeMux()
-	mux.Handle("/", apiHandler)
+	mux.Handle("/api/", apiHandler)
 	mux.Handle("/metrics", promhttp.Handler())
 	// TODO: Disabled until p2p.GetPubSubManager() is implemented
-	// mux.HandleFunc("/p2p/topic-peers", server.ListTopicPeers)
+	// mux.HandleFunc("/api/p2p/topic-peers", server.ListTopicPeers)
 	mux.HandleFunc("/health", server.Health)
-	mux.HandleFunc("/upload-status", server.GetUploadStatus)
-	mux.HandleFunc("/upload-status/active", server.GetActiveUploadStatus)
-	mux.HandleFunc("/upload-status/", server.CancelUpload) // Handles /upload-status/{fileName}/cancel
+	mux.HandleFunc("/api/upload-status", server.GetUploadStatus)
+	mux.HandleFunc("/api/upload-status/active", server.GetActiveUploadStatus)
+	mux.HandleFunc("/api/upload-status/", server.CancelUpload) // Handles /api/upload-status/{fileName}/cancel
 	mux.HandleFunc("/api/ipfs/pin/", server.PinContent)
 	mux.Handle("/ui/", http.StripPrefix("/ui", http.FileServer(http.Dir("../../pinshare-ui/dist"))))
 
