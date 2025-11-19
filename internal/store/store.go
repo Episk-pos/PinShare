@@ -190,8 +190,9 @@ func (s *MetadataStore) ApplyGossipUpdate(remoteMeta BaseMetadata) (bool, error)
 	remoteMeta.AddedAt = remoteMeta.AddedAt         // TODO: seems pointless
 
 	existing, exists := s.Files[remoteMeta.FileSHA256]
-	if !exists || remoteMeta.LastUpdated.After(existing.LastUpdated) {
-		// If new, or remote is strictly newer, apply it.
+	if !exists || !remoteMeta.LastUpdated.Before(existing.LastUpdated) {
+		// If new, or remote is newer-or-equal, apply it.
+		// Accept equal timestamps for idempotent updates (same state, safe to reapply)
 		// We directly store remoteMeta, preserving its LastUpdated timestamp.
 		// if remoteMeta.Tags == nil {
 		// 	remoteMeta.Tags = make(map[string]bool)

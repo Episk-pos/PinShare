@@ -181,6 +181,9 @@ func processFile(ctx context.Context, folderPath, f string) {
 					// Save metadata immediately after successful upload
 					store.GlobalStore.Save(appconfInstance.MetaDataFile)
 
+					// Immediately publish metadata to P2P network for fast propagation
+					go PublishMetadataUpdate(metadata)
+
 					store.StatusManager.CompleteUpload(f)
 					if appconfInstance.FFMoveUpload {
 						err := psfs.MoveFile(folderPath+"/"+f, appconfInstance.CacheFolder+"/"+f)
