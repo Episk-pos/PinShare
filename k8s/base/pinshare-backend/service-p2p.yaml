@@ -6,15 +6,17 @@ metadata:
   labels:
     app: pinshare-backend
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: pinshare-backend
   ports:
     - name: libp2p-tcp
       port: 50001
       targetPort: 50001
+      nodePort: 30501
       protocol: TCP
     - name: libp2p-udp
       port: 50001
       targetPort: 50001
+      nodePort: 30501
       protocol: UDP
