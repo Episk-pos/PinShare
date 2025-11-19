@@ -41,10 +41,11 @@ type PubSubManager struct {
 }
 
 func NewPubSubManager(ctx context.Context, h host.Host, kadDHT *dht.IpfsDHT, storeInstance *store.MetadataStore, dataFilePath string, config PubSubConfig) (*PubSubManager, error) {
-	// Create GossipSub instance
-	// Note: GossipSub requires direct connections for mesh formation
-	// NodePort service provides direct access to enable this
-	ps, err := pubsub.NewGossipSub(ctx, h)
+	// Create GossipSub instance with relay-friendly configuration
+	// Using FloodPublish to ensure messages reach peers over relay connections
+	ps, err := pubsub.NewGossipSub(ctx, h,
+		pubsub.WithFloodPublish(true), // Flood publish helps with relay connections
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pubsub service: %w", err)
 	}
