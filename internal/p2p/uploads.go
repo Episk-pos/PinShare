@@ -182,7 +182,13 @@ func processFile(ctx context.Context, folderPath, f string) {
 					store.GlobalStore.Save(appconfInstance.MetaDataFile)
 
 					// Immediately publish metadata to P2P network for fast propagation
-					go PublishMetadataUpdate(metadata)
+					go func(meta store.BaseMetadata) {
+						if err := PublishMetadataUpdate(meta); err != nil {
+							fmt.Printf("[ERROR] Failed to immediately publish metadata for %s: %v\n", meta.FileName, err)
+						} else {
+							fmt.Printf("[INFO] Successfully immediately published metadata for %s\n", meta.FileName)
+						}
+					}(metadata)
 
 					store.StatusManager.CompleteUpload(f)
 					if appconfInstance.FFMoveUpload {

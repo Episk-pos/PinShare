@@ -271,6 +271,8 @@ func (psm *PubSubManager) handleIncomingMessages() {
 				} else {
 					fmt.Println("[INFO] File did not pass security check for " + receivedMeta.IPFSCID)
 				}
+			} else {
+				fmt.Printf("[DEBUG] Received duplicate/stale metadata from %s for %s (not applied)\n", msg.ReceivedFrom.String(), receivedMeta.FileSHA256)
 			}
 
 		}
