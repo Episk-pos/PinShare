@@ -270,12 +270,9 @@
     </Component>
   </Fragment>
 
-  <!-- Startup entry for tray app (conditional based on TRAY_AUTO_START) -->
+  <!-- Startup entry for tray app -->
   <Fragment>
     <Component Id="StartupEntry" Directory="StartupFolder" Bitness="always64">
-      <!-- Only create startup shortcut if TRAY_AUTO_START=1 -->
-      <Condition>TRAY_AUTO_START="1"</Condition>
-
       <Shortcut Id="StartupShortcut"
                 Name="PinShare Tray"
                 Description="PinShare System Tray"
