@@ -42,13 +42,15 @@ for file in pinsharesvc.exe pinshare.exe pinshare-tray.exe ipfs.exe; do
     fi
 done
 
-if [ ! -f "../dist/windows/ui/index.html" ]; then
-    echo "ERROR: UI files not found in ../dist/windows/ui"
-    echo "Please build the React UI first"
-    exit 1
-fi
+# TEMPORARILY DISABLED: UI check removed until pinshare-ui is merged
+# if [ ! -f "../dist/windows/ui/index.html" ]; then
+#     echo "ERROR: UI files not found in ../dist/windows/ui"
+#     echo "Please build the React UI first"
+#     exit 1
+# fi
 
 echo "All required files found!"
+echo "Note: UI components temporarily disabled (will be added from infra/refactor)"
 echo ""
 
 # Build the MSI using dotnet build

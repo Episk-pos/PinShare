@@ -50,12 +50,18 @@ if errorlevel 1 (
 echo [OK] Built: %DIST_DIR%\pinshare-tray.exe
 echo.
 
-REM Build React UI
+REM Build React UI (optional - skip if pinshare-ui directory doesn't exist)
 echo Building React UI...
+if not exist "%SCRIPT_DIR%pinshare-ui" (
+    echo [SKIP] pinshare-ui directory not found - UI will be added later
+    echo.
+    goto :after_ui
+)
+
 pushd "%SCRIPT_DIR%pinshare-ui"
 if errorlevel 1 (
-    echo ERROR: pinshare-ui directory not found
-    exit /b 1
+    echo [SKIP] Could not access pinshare-ui directory
+    goto :after_ui
 )
 
 if not exist "node_modules" (
@@ -81,6 +87,8 @@ xcopy /E /I /Q dist "%DIST_DIR%\ui"
 popd
 echo [OK] Built: %DIST_DIR%\ui\
 echo.
+
+:after_ui
 
 REM Download IPFS if not present
 if not exist "%DIST_DIR%\ipfs.exe" (
