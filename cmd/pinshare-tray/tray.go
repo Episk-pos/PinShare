@@ -182,10 +182,10 @@ func (t *Tray) handleRestartService() {
 	}
 }
 
-// handleSettings opens settings (placeholder)
+// handleSettings opens the settings dialog
 func (t *Tray) handleSettings() {
-	showMessage("Settings", "Settings UI not yet implemented")
-	// TODO: Implement settings dialog
+	log.Println("Opening settings dialog...")
+	go showSettingsDialog()
 }
 
 // handleViewLogs opens the log directory
