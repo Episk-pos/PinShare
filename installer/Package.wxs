@@ -28,9 +28,8 @@
     <!-- <Icon Id="PinShareIcon" SourceFile="icon.ico" /> -->
     <!-- <Property Id="ARPPRODUCTICON" Value="PinShareIcon" /> -->
 
-    <!-- UI - Use WixUI_InstallDir with custom configuration dialog -->
+    <!-- UI - Use WixUI_InstallDir for basic installer -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
-    <UIRef Id="PinShareConfigUI" />
 
     <!-- Custom actions -->
     <CustomAction Id="StartService"
