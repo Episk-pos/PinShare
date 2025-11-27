@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -351,38 +352,48 @@ func checkHTTPHealth(url string) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-// startService starts the service using 'net start' with elevation
-func startService() error {
-	log.Printf("Starting service %s with elevation...", serviceName)
+// runElevatedServiceCommand runs a service control command with UAC elevation
+// while minimizing visible windows
+func runElevatedServiceCommand(action string) error {
+	log.Printf("Running elevated service command: %s %s", action, serviceName)
 
-	// Use PowerShell Start-Process with -Verb RunAs for UAC elevation
-	psCmd := fmt.Sprintf("Start-Process -FilePath 'net' -ArgumentList 'start %s' -Verb RunAs -Wait -WindowStyle Hidden", serviceName)
+	// Use PowerShell to run net.exe with elevation
+	// -WindowStyle Hidden hides the elevated net.exe window
+	// The outer PowerShell is also hidden via SysProcAttr
+	psCmd := fmt.Sprintf(
+		"Start-Process -FilePath 'net.exe' -ArgumentList '%s %s' -Verb RunAs -Wait -WindowStyle Hidden",
+		action, serviceName,
+	)
 
-	cmd := exec.Command("powershell", "-Command", psCmd)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("Failed to start service: %v, output: %s", err, string(output))
-		return fmt.Errorf("failed to start service: %w", err)
+	cmd := exec.Command("powershell.exe",
+		"-NoProfile",
+		"-NonInteractive",
+		"-WindowStyle", "Hidden",
+		"-Command", psCmd,
+	)
+
+	// Hide the console window for the outer PowerShell process
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
 	}
 
-	log.Printf("Service start command completed")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Failed to %s service: %v, output: %s", action, err, string(output))
+		return fmt.Errorf("failed to %s service: %w", action, err)
+	}
+
+	log.Printf("Service %s command completed successfully", action)
 	return nil
+}
+
+// startService starts the service using 'net start' with elevation
+func startService() error {
+	return runElevatedServiceCommand("start")
 }
 
 // stopService stops the service using 'net stop' with elevation
 func stopService() error {
-	log.Printf("Stopping service %s with elevation...", serviceName)
-
-	// Use PowerShell Start-Process with -Verb RunAs for UAC elevation
-	psCmd := fmt.Sprintf("Start-Process -FilePath 'net' -ArgumentList 'stop %s' -Verb RunAs -Wait -WindowStyle Hidden", serviceName)
-
-	cmd := exec.Command("powershell", "-Command", psCmd)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("Failed to stop service: %v, output: %s", err, string(output))
-		return fmt.Errorf("failed to stop service: %w", err)
-	}
-
-	log.Printf("Service stop command completed")
-	return nil
+	return runElevatedServiceCommand("stop")
 }
