@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
   <?define ProductName = "PinShare" ?>
   <?define ProductVersion = "1.0.0" ?>
@@ -27,10 +28,9 @@
     <!-- <Icon Id="PinShareIcon" SourceFile="icon.ico" /> -->
     <!-- <Property Id="ARPPRODUCTICON" Value="PinShareIcon" /> -->
 
-    <!-- UI - Use custom PinShare UI with configuration dialogs -->
-    <UIRef Id="WixUI_InstallDir" />
+    <!-- UI - Use WixUI_InstallDir with custom configuration dialog -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <UIRef Id="PinShareConfigUI" />
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
 
     <!-- Custom actions -->
     <CustomAction Id="StartService"
