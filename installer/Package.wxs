@@ -33,7 +33,7 @@
     <Property Id="IPFS_API_PORT" Value="5001" Secure="yes" />
     <Property Id="IPFS_GATEWAY_PORT" Value="8080" Secure="yes" />
     <Property Id="IPFS_SWARM_PORT" Value="4001" Secure="yes" />
-    <Property Id="SKIP_VIRUSTOTAL" Value="1" Secure="yes" />
+    <Property Id="SKIP_VIRUSTOTAL" Value="0" Secure="yes" />
     <Property Id="ENABLE_CACHE" Value="1" Secure="yes" />
     <Property Id="ARCHIVE_NODE" Value="0" Secure="yes" />
     <Property Id="LOG_LEVEL" Value="info" Secure="yes" />
