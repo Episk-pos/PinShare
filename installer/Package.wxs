@@ -23,6 +23,26 @@
 
     <Media Id="1" Cabinet="PinShare.cab" EmbedCab="yes" />
 
+    <!-- Configurable properties - can be set via command line -->
+    <!-- Example: msiexec /i PinShare-Setup.msi ORG_NAME="MyCompany" UI_PORT="9000" -->
+    <Property Id="ORG_NAME" Value="MyOrganization" Secure="yes" />
+    <Property Id="GROUP_NAME" Value="MyGroup" Secure="yes" />
+    <Property Id="UI_PORT" Value="8888" Secure="yes" />
+    <Property Id="PINSHARE_API_PORT" Value="9090" Secure="yes" />
+    <Property Id="PINSHARE_P2P_PORT" Value="50001" Secure="yes" />
+    <Property Id="IPFS_API_PORT" Value="5001" Secure="yes" />
+    <Property Id="IPFS_GATEWAY_PORT" Value="8080" Secure="yes" />
+    <Property Id="IPFS_SWARM_PORT" Value="4001" Secure="yes" />
+    <Property Id="SKIP_VIRUSTOTAL" Value="1" Secure="yes" />
+    <Property Id="ENABLE_CACHE" Value="1" Secure="yes" />
+    <Property Id="ARCHIVE_NODE" Value="0" Secure="yes" />
+    <Property Id="LOG_LEVEL" Value="info" Secure="yes" />
+    <!-- Startup options: 1 = yes, 0 = no -->
+    <Property Id="START_SERVICE_NOW" Value="1" Secure="yes" />
+    <Property Id="START_TRAY_NOW" Value="1" Secure="yes" />
+    <Property Id="SERVICE_AUTO_START" Value="1" Secure="yes" />
+    <Property Id="TRAY_AUTO_START" Value="1" Secure="yes" />
+
     <!-- Icons -->
     <!-- TEMPORARILY DISABLED: icon.ico file not yet created -->
     <!-- <Icon Id="PinShareIcon" SourceFile="icon.ico" /> -->
@@ -60,14 +80,25 @@
                   Return="ignore"
                   Impersonate="no" />
 
+    <!-- Start tray application after install -->
+    <CustomAction Id="StartTray"
+                  FileRef="PinShareTrayExe"
+                  ExeCommand=""
+                  Execute="deferred"
+                  Return="asyncNoWait"
+                  Impersonate="yes" />
+
     <InstallExecuteSequence>
       <!-- Stop service before uninstall -->
       <Custom Action="StopService" Before="RemoveFiles" Condition="Installed AND NOT UPGRADINGPRODUCTCODE" />
       <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND NOT UPGRADINGPRODUCTCODE" />
 
-      <!-- Install and start service after install -->
-      <Custom Action="InstallService" After="InstallFiles" Condition="NOT Installed" />
-      <Custom Action="StartService" After="InstallService" Condition="NOT Installed" />
+      <!-- Install service (always install, but only start if START_SERVICE_NOW=1) -->
+      <Custom Action="InstallService" After="InstallFiles" Condition="NOT Installed AND SERVICE_AUTO_START=1" />
+      <Custom Action="StartService" After="InstallService" Condition="NOT Installed AND START_SERVICE_NOW=1" />
+
+      <!-- Start tray application if START_TRAY_NOW=1 -->
+      <Custom Action="StartTray" After="StartService" Condition="NOT Installed AND START_TRAY_NOW=1" />
     </InstallExecuteSequence>
 
     <!-- Features -->
@@ -239,9 +270,12 @@
     </Component>
   </Fragment>
 
-  <!-- Startup entry for tray app -->
+  <!-- Startup entry for tray app (conditional based on TRAY_AUTO_START) -->
   <Fragment>
     <Component Id="StartupEntry" Directory="StartupFolder" Bitness="always64">
+      <!-- Only create startup shortcut if TRAY_AUTO_START=1 -->
+      <Condition>TRAY_AUTO_START="1"</Condition>
+
       <Shortcut Id="StartupShortcut"
                 Name="PinShare Tray"
                 Description="PinShare System Tray"
