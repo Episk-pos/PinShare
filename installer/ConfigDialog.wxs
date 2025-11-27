@@ -19,7 +19,7 @@
 
         <!-- Network Identity Section -->
         <Control Id="NetworkHeader" Type="Text" X="15" Y="52" Width="370" Height="12" Text="{\WixUI_Font_Bold}Network Identity" />
-        <Control Id="NetworkDesc" Type="Text" X="15" Y="65" Width="370" Height="20" Text="Organization and Group form the gossip topic for peer discovery." />
+        <Control Id="NetworkDesc" Type="Text" X="15" Y="65" Width="370" Height="20" Text="Forms gossip topic: /Org/Group/metadata-sync/1.0.0 for peer discovery." />
 
         <!-- Organization Name -->
         <Control Id="OrgNameLabel" Type="Text" X="15" Y="88" Width="80" Height="15" Text="Organization:" />
