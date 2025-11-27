@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/getlantern/systray"
-	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
 )
 
 const (
@@ -147,7 +148,7 @@ func (t *Tray) handleStartService() {
 
 // handleStopService stops the service
 func (t *Tray) handleStopService() {
-	if err := controlService(svc.Stop); err != nil {
+	if err := stopService(); err != nil {
 		log.Printf("Failed to stop service: %v", err)
 		showMessage("Error", fmt.Sprintf("Failed to stop service: %v", err))
 	} else {
@@ -160,7 +161,7 @@ func (t *Tray) handleStopService() {
 // handleRestartService restarts the service
 func (t *Tray) handleRestartService() {
 	// Stop first
-	if err := controlService(svc.Stop); err != nil {
+	if err := stopService(); err != nil {
 		log.Printf("Failed to stop service: %v", err)
 		showMessage("Error", fmt.Sprintf("Failed to stop service: %v", err))
 		return
@@ -215,28 +216,16 @@ func (t *Tray) UpdateStatusLoop() {
 
 // updateStatus updates the service status
 func (t *Tray) updateStatus() {
-	status, err := getServiceStatus()
-	if err != nil {
-		t.lastError = err
-		t.serviceRunning = false
-		t.menuStatus.SetTitle("Status: Error")
-		t.menuIPFSStatus.SetTitle("  IPFS: Unknown")
-		t.menuPinShareStatus.SetTitle("  PinShare: Unknown")
-		t.menuPeersStatus.SetTitle("  Peers: Unknown")
+	log.Println("Updating service status...")
 
-		// Enable start, disable stop
-		t.menuStart.Enable()
-		t.menuStop.Disable()
-		t.menuRestart.Disable()
+	// Check service state using sc query (doesn't require admin)
+	serviceState := getServiceState()
+	log.Printf("Service state: %s", serviceState)
 
-		systray.SetTooltip("PinShare - Service not running")
-		return
-	}
-
-	switch status {
-	case svc.Running:
+	switch serviceState {
+	case "RUNNING":
 		t.serviceRunning = true
-		t.menuStatus.SetTitle("Status: Running ✓")
+		t.menuStatus.SetTitle("Status: Running")
 
 		// Update icon/tooltip
 		systray.SetTooltip("PinShare - Running")
@@ -246,12 +235,30 @@ func (t *Tray) updateStatus() {
 		t.menuStop.Enable()
 		t.menuRestart.Enable()
 
-		// TODO: Query actual IPFS/PinShare health
-		t.menuIPFSStatus.SetTitle("  IPFS: Online")
-		t.menuPinShareStatus.SetTitle("  PinShare: Online")
+		// Check actual health via HTTP endpoints
+		uiHealthy := checkHTTPHealth(fmt.Sprintf("http://localhost:%d/api/health", uiPort))
+		pinshareHealthy := checkHTTPHealth("http://localhost:9090/api/health")
+		ipfsHealthy := checkHTTPHealth("http://localhost:5001/api/v0/version")
+
+		if uiHealthy {
+			t.menuStatus.SetTitle("Status: Running OK")
+		}
+
+		if ipfsHealthy {
+			t.menuIPFSStatus.SetTitle("  IPFS: Online")
+		} else {
+			t.menuIPFSStatus.SetTitle("  IPFS: Starting...")
+		}
+
+		if pinshareHealthy {
+			t.menuPinShareStatus.SetTitle("  PinShare: Online")
+		} else {
+			t.menuPinShareStatus.SetTitle("  PinShare: Starting...")
+		}
+
 		t.menuPeersStatus.SetTitle("  Peers: Connected")
 
-	case svc.Stopped:
+	case "STOPPED":
 		t.serviceRunning = false
 		t.menuStatus.SetTitle("Status: Stopped")
 		t.menuIPFSStatus.SetTitle("  IPFS: Offline")
@@ -265,79 +272,117 @@ func (t *Tray) updateStatus() {
 
 		systray.SetTooltip("PinShare - Stopped")
 
-	case svc.StartPending:
+	case "START_PENDING":
 		t.menuStatus.SetTitle("Status: Starting...")
 		t.menuStart.Disable()
 		t.menuStop.Disable()
 		t.menuRestart.Disable()
 		systray.SetTooltip("PinShare - Starting...")
 
-	case svc.StopPending:
+	case "STOP_PENDING":
 		t.menuStatus.SetTitle("Status: Stopping...")
 		t.menuStart.Disable()
 		t.menuStop.Disable()
 		t.menuRestart.Disable()
 		systray.SetTooltip("PinShare - Stopping...")
 
+	case "NOT_INSTALLED":
+		t.serviceRunning = false
+		t.menuStatus.SetTitle("Status: Not Installed")
+		t.menuIPFSStatus.SetTitle("  IPFS: N/A")
+		t.menuPinShareStatus.SetTitle("  PinShare: N/A")
+		t.menuPeersStatus.SetTitle("  Peers: N/A")
+		t.menuStart.Disable()
+		t.menuStop.Disable()
+		t.menuRestart.Disable()
+		systray.SetTooltip("PinShare - Service not installed")
+
 	default:
-		t.menuStatus.SetTitle(fmt.Sprintf("Status: Unknown (%d)", status))
+		t.menuStatus.SetTitle(fmt.Sprintf("Status: %s", serviceState))
 		systray.SetTooltip("PinShare - Unknown status")
 	}
 }
 
-// getServiceStatus gets the current service status
-func getServiceStatus() (svc.State, error) {
-	manager, err := mgr.Connect()
+// getServiceState uses 'sc query' to get service state (doesn't require admin)
+func getServiceState() string {
+	cmd := exec.Command("sc", "query", serviceName)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return svc.Stopped, fmt.Errorf("failed to connect to service manager: %w", err)
-	}
-	defer manager.Disconnect()
-
-	service, err := manager.OpenService(serviceName)
-	if err != nil {
-		return svc.Stopped, fmt.Errorf("failed to open service: %w", err)
-	}
-	defer service.Close()
-
-	status, err := service.Query()
-	if err != nil {
-		return svc.Stopped, fmt.Errorf("failed to query service: %w", err)
+		// Service might not be installed
+		outputStr := string(output)
+		if strings.Contains(outputStr, "1060") || strings.Contains(outputStr, "does not exist") {
+			return "NOT_INSTALLED"
+		}
+		log.Printf("sc query failed: %v, output: %s", err, outputStr)
+		return "UNKNOWN"
 	}
 
-	return status.State, nil
+	outputStr := string(output)
+
+	// Parse STATE from output
+	// Example: "        STATE              : 4  RUNNING"
+	if strings.Contains(outputStr, "RUNNING") {
+		return "RUNNING"
+	} else if strings.Contains(outputStr, "STOPPED") {
+		return "STOPPED"
+	} else if strings.Contains(outputStr, "START_PENDING") {
+		return "START_PENDING"
+	} else if strings.Contains(outputStr, "STOP_PENDING") {
+		return "STOP_PENDING"
+	} else if strings.Contains(outputStr, "PAUSED") {
+		return "PAUSED"
+	}
+
+	return "UNKNOWN"
 }
 
-// startService starts the service
+// checkHTTPHealth checks if an HTTP endpoint responds successfully
+func checkHTTPHealth(url string) bool {
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK
+}
+
+// startService starts the service using 'net start' with elevation
 func startService() error {
-	manager, err := mgr.Connect()
-	if err != nil {
-		return fmt.Errorf("failed to connect to service manager: %w", err)
-	}
-	defer manager.Disconnect()
+	log.Printf("Starting service %s with elevation...", serviceName)
 
-	service, err := manager.OpenService(serviceName)
-	if err != nil {
-		return fmt.Errorf("failed to open service: %w", err)
-	}
-	defer service.Close()
+	// Use PowerShell Start-Process with -Verb RunAs for UAC elevation
+	psCmd := fmt.Sprintf("Start-Process -FilePath 'net' -ArgumentList 'start %s' -Verb RunAs -Wait -WindowStyle Hidden", serviceName)
 
-	return service.Start()
+	cmd := exec.Command("powershell", "-Command", psCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Failed to start service: %v, output: %s", err, string(output))
+		return fmt.Errorf("failed to start service: %w", err)
+	}
+
+	log.Printf("Service start command completed")
+	return nil
 }
 
-// controlService sends a control command to the service
-func controlService(cmd svc.Cmd) error {
-	manager, err := mgr.Connect()
-	if err != nil {
-		return fmt.Errorf("failed to connect to service manager: %w", err)
-	}
-	defer manager.Disconnect()
+// stopService stops the service using 'net stop' with elevation
+func stopService() error {
+	log.Printf("Stopping service %s with elevation...", serviceName)
 
-	service, err := manager.OpenService(serviceName)
-	if err != nil {
-		return fmt.Errorf("failed to open service: %w", err)
-	}
-	defer service.Close()
+	// Use PowerShell Start-Process with -Verb RunAs for UAC elevation
+	psCmd := fmt.Sprintf("Start-Process -FilePath 'net' -ArgumentList 'stop %s' -Verb RunAs -Wait -WindowStyle Hidden", serviceName)
 
-	_, err = service.Control(cmd)
-	return err
+	cmd := exec.Command("powershell", "-Command", psCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Failed to stop service: %v, output: %s", err, string(output))
+		return fmt.Errorf("failed to stop service: %w", err)
+	}
+
+	log.Printf("Service stop command completed")
+	return nil
 }
