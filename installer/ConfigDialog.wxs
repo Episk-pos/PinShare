@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!--
+    Define properties with default values that users can override.
+    These can be set via command-line: msiexec /i PinShare.msi ORG_NAME="MyCompany"
+    Or via the installer dialogs below.
+  -->
+  <Fragment>
+    <!-- Organization settings -->
+    <Property Id="ORG_NAME" Value="MyOrganization" Secure="yes" />
+    <Property Id="GROUP_NAME" Value="MyGroup" Secure="yes" />
+
+    <!-- Folder paths - defaults to CommonAppDataFolder\PinShare -->
+    <Property Id="DATA_FOLDER" Value="[CommonAppDataFolder]PinShare" Secure="yes" />
+    <Property Id="LOGS_FOLDER" Value="[CommonAppDataFolder]PinShare\logs" Secure="yes" />
+    <Property Id="UPLOAD_FOLDER" Value="[CommonAppDataFolder]PinShare\upload" Secure="yes" />
+    <Property Id="CACHE_FOLDER" Value="[CommonAppDataFolder]PinShare\cache" Secure="yes" />
+
+    <!-- Port configuration -->
+    <Property Id="IPFS_API_PORT" Value="5001" Secure="yes" />
+    <Property Id="IPFS_GATEWAY_PORT" Value="8080" Secure="yes" />
+    <Property Id="IPFS_SWARM_PORT" Value="4001" Secure="yes" />
+    <Property Id="PINSHARE_API_PORT" Value="9090" Secure="yes" />
+    <Property Id="PINSHARE_P2P_PORT" Value="50001" Secure="yes" />
+    <Property Id="UI_PORT" Value="8888" Secure="yes" />
+
+    <!-- Feature toggles -->
+    <Property Id="SKIP_VIRUSTOTAL" Value="1" Secure="yes" />
+    <Property Id="ENABLE_CACHE" Value="1" Secure="yes" />
+    <Property Id="ARCHIVE_NODE" Value="0" Secure="yes" />
+    <Property Id="LOG_LEVEL" Value="info" Secure="yes" />
+  </Fragment>
+
+  <!-- Custom UI Dialog Definition -->
+  <Fragment>
+    <UI Id="PinShareConfigUI">
+
+      <!-- PinShare Configuration Dialog -->
+      <Dialog Id="PinShareConfigDlg" Width="370" Height="270" Title="[ProductName] Configuration">
+        <!-- Banner -->
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+
+        <!-- Title -->
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes">
+          <Text>{\WixUI_Font_Title}Configuration</Text>
+        </Control>
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes">
+          <Text>Configure PinShare for your organization.</Text>
+        </Control>
+
+        <!-- Organization Name -->
+        <Control Id="OrgNameLabel" Type="Text" X="20" Y="60" Width="100" Height="15">
+          <Text>Organization Name:</Text>
+        </Control>
+        <Control Id="OrgNameEdit" Type="Edit" X="125" Y="58" Width="220" Height="18" Property="ORG_NAME" />
+
+        <!-- Group Name -->
+        <Control Id="GroupNameLabel" Type="Text" X="20" Y="85" Width="100" Height="15">
+          <Text>Group Name:</Text>
+        </Control>
+        <Control Id="GroupNameEdit" Type="Edit" X="125" Y="83" Width="220" Height="18" Property="GROUP_NAME" />
+
+        <!-- Logs Folder -->
+        <Control Id="LogsFolderLabel" Type="Text" X="20" Y="110" Width="100" Height="15">
+          <Text>Logs Folder:</Text>
+        </Control>
+        <Control Id="LogsFolderEdit" Type="PathEdit" X="125" Y="108" Width="220" Height="18" Property="LOGS_FOLDER" />
+
+        <!-- UI Port -->
+        <Control Id="UIPortLabel" Type="Text" X="20" Y="140" Width="50" Height="15">
+          <Text>UI Port:</Text>
+        </Control>
+        <Control Id="UIPortEdit" Type="Edit" X="75" Y="138" Width="50" Height="18" Property="UI_PORT" />
+
+        <!-- API Port -->
+        <Control Id="APIPortLabel" Type="Text" X="140" Y="140" Width="50" Height="15">
+          <Text>API Port:</Text>
+        </Control>
+        <Control Id="APIPortEdit" Type="Edit" X="195" Y="138" Width="50" Height="18" Property="PINSHARE_API_PORT" />
+
+        <!-- P2P Port -->
+        <Control Id="P2PPortLabel" Type="Text" X="260" Y="140" Width="50" Height="15">
+          <Text>P2P Port:</Text>
+        </Control>
+        <Control Id="P2PPortEdit" Type="Edit" X="295" Y="138" Width="50" Height="18" Property="PINSHARE_P2P_PORT" />
+
+        <!-- Skip VirusTotal checkbox -->
+        <Control Id="SkipVTCheck" Type="CheckBox" X="20" Y="170" Width="320" Height="17" Property="SKIP_VIRUSTOTAL" CheckBoxValue="1">
+          <Text>Skip VirusTotal scanning (for private/air-gapped networks)</Text>
+        </Control>
+
+        <!-- Enable Cache checkbox -->
+        <Control Id="CacheCheck" Type="CheckBox" X="20" Y="190" Width="150" Height="17" Property="ENABLE_CACHE" CheckBoxValue="1">
+          <Text>Enable file caching</Text>
+        </Control>
+
+        <!-- Archive Node checkbox -->
+        <Control Id="ArchiveCheck" Type="CheckBox" X="180" Y="190" Width="180" Height="17" Property="ARCHIVE_NODE" CheckBoxValue="1">
+          <Text>Run as archive node</Text>
+        </Control>
+
+        <!-- Navigation buttons -->
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="InstallDirDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <!-- Wire up the dialog sequence: InstallDirDlg -> PinShareConfigDlg -> VerifyReadyDlg -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="PinShareConfigDlg" Order="4">1</Publish>
+      <Publish Dialog="PinShareConfigDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Order="1">1</Publish>
+      <Publish Dialog="PinShareConfigDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="1">1</Publish>
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="PinShareConfigDlg" Order="1">NOT Installed</Publish>
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2">Installed</Publish>
+
+    </UI>
+  </Fragment>
+
+</Wix>

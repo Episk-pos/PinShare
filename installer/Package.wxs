@@ -27,10 +27,10 @@
     <!-- <Icon Id="PinShareIcon" SourceFile="icon.ico" /> -->
     <!-- <Property Id="ARPPRODUCTICON" Value="PinShareIcon" /> -->
 
-    <!-- UI -->
-    <!-- TEMPORARILY DISABLED: WixUI changed in WiX 4+ -->
-    <!-- <UIRef Id="WixUI_Minimal" /> -->
-    <!-- <WixVariable Id="WixUILicenseRtf" Value="license.rtf" /> -->
+    <!-- UI - Use custom PinShare UI with configuration dialogs -->
+    <UIRef Id="WixUI_InstallDir" />
+    <UIRef Id="PinShareConfigUI" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
 
     <!-- Custom actions -->
     <CustomAction Id="StartService"
@@ -188,30 +188,36 @@
   </Fragment>
   -->
 
-  <!-- Registry entries -->
+  <!-- Registry entries - values from installer dialog properties -->
   <Fragment>
     <Component Id="RegistryEntries" Directory="INSTALLFOLDER" Bitness="always64">
       <RegistryKey Root="HKLM" Key="SOFTWARE\PinShare">
+        <!-- Installation paths -->
         <RegistryValue Name="InstallDirectory" Type="string" Value="[INSTALLFOLDER]" />
-        <RegistryValue Name="DataDirectory" Type="string" Value="[DataFolder]" />
+        <RegistryValue Name="DataDirectory" Type="string" Value="[DATA_FOLDER]" />
+        <RegistryValue Name="LogsDirectory" Type="string" Value="[LOGS_FOLDER]" />
+        <RegistryValue Name="UploadDirectory" Type="string" Value="[UPLOAD_FOLDER]" />
+        <RegistryValue Name="CacheDirectory" Type="string" Value="[CACHE_FOLDER]" />
         <RegistryValue Name="IPFSBinary" Type="string" Value="[INSTALLFOLDER]ipfs.exe" />
         <RegistryValue Name="PinShareBinary" Type="string" Value="[INSTALLFOLDER]pinshare.exe" />
 
-        <!-- Ports -->
-        <RegistryValue Name="IPFSAPIPort" Type="integer" Value="5001" />
-        <RegistryValue Name="IPFSGatewayPort" Type="integer" Value="8080" />
-        <RegistryValue Name="IPFSSwarmPort" Type="integer" Value="4001" />
-        <RegistryValue Name="PinShareAPIPort" Type="integer" Value="9090" />
-        <RegistryValue Name="PinShareP2PPort" Type="integer" Value="50001" />
-        <RegistryValue Name="UIPort" Type="integer" Value="8888" />
+        <!-- Ports - user configurable -->
+        <RegistryValue Name="IPFSAPIPort" Type="string" Value="[IPFS_API_PORT]" />
+        <RegistryValue Name="IPFSGatewayPort" Type="string" Value="[IPFS_GATEWAY_PORT]" />
+        <RegistryValue Name="IPFSSwarmPort" Type="string" Value="[IPFS_SWARM_PORT]" />
+        <RegistryValue Name="PinShareAPIPort" Type="string" Value="[PINSHARE_API_PORT]" />
+        <RegistryValue Name="PinShareP2PPort" Type="string" Value="[PINSHARE_P2P_PORT]" />
+        <RegistryValue Name="UIPort" Type="string" Value="[UI_PORT]" />
 
-        <!-- Configuration -->
-        <RegistryValue Name="OrgName" Type="string" Value="MyOrganization" />
-        <RegistryValue Name="GroupName" Type="string" Value="MyGroup" />
-        <RegistryValue Name="SkipVirusTotal" Type="integer" Value="1" />
-        <RegistryValue Name="EnableCache" Type="integer" Value="1" />
-        <RegistryValue Name="ArchiveNode" Type="integer" Value="0" />
-        <RegistryValue Name="LogLevel" Type="string" Value="info" />
+        <!-- Organization configuration - user configurable -->
+        <RegistryValue Name="OrgName" Type="string" Value="[ORG_NAME]" />
+        <RegistryValue Name="GroupName" Type="string" Value="[GROUP_NAME]" />
+
+        <!-- Feature toggles - user configurable -->
+        <RegistryValue Name="SkipVirusTotal" Type="string" Value="[SKIP_VIRUSTOTAL]" />
+        <RegistryValue Name="EnableCache" Type="string" Value="[ENABLE_CACHE]" />
+        <RegistryValue Name="ArchiveNode" Type="string" Value="[ARCHIVE_NODE]" />
+        <RegistryValue Name="LogLevel" Type="string" Value="[LOG_LEVEL]" />
       </RegistryKey>
     </Component>
   </Fragment>
