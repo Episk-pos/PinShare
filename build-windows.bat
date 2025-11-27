@@ -110,39 +110,43 @@ echo.
 
 REM Ask about building installer
 echo.
-echo Would you like to build the MSI installer now? (Y/N)
-set /p BUILD_INSTALLER=
-if /i "%BUILD_INSTALLER%"=="Y" (
-    echo.
-    echo Building MSI installer...
-    pushd "%SCRIPT_DIR%installer"
-    if errorlevel 1 (
-        echo ERROR: Failed to change to installer directory at %SCRIPT_DIR%installer
-        exit /b 1
-    )
+choice /c YN /m "Would you like to build the MSI installer now"
+if errorlevel 2 goto skip_installer
+if errorlevel 1 goto build_installer
 
-    call build-wix6.bat
-    if errorlevel 1 (
-        echo ERROR: Installer build failed
-        popd
-        exit /b 1
-    )
-
-    popd
-    echo.
-    echo ==========================================
-    echo Build Complete!
-    echo ==========================================
-    echo.
-    echo Installer: %SCRIPT_DIR%installer\bin\Release\PinShare-Setup.msi
-    echo.
-    echo To install, run:
-    echo   msiexec /i "%SCRIPT_DIR%installer\bin\Release\PinShare-Setup.msi"
-) else (
-    echo.
-    echo Skipping installer build. To build later, run:
-    echo   cd "%SCRIPT_DIR%installer"
-    echo   build-wix6.bat
+:build_installer
+echo.
+echo Building MSI installer...
+pushd "%SCRIPT_DIR%installer"
+if errorlevel 1 (
+    echo ERROR: Failed to change to installer directory at %SCRIPT_DIR%installer
+    exit /b 1
 )
 
+call build-wix6.bat
+if errorlevel 1 (
+    echo ERROR: Installer build failed
+    popd
+    exit /b 1
+)
+
+popd
+echo.
+echo ==========================================
+echo Build Complete!
+echo ==========================================
+echo.
+echo Installer: %SCRIPT_DIR%installer\bin\Release\PinShare-Setup.msi
+echo.
+echo To install, run:
+echo   msiexec /i "%SCRIPT_DIR%installer\bin\Release\PinShare-Setup.msi"
+goto end_script
+
+:skip_installer
+echo.
+echo Skipping installer build. To build later, run:
+echo   cd "%SCRIPT_DIR%installer"
+echo   build-wix6.bat
+
+:end_script
 endlocal
