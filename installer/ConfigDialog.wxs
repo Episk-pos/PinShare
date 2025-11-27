@@ -12,11 +12,10 @@
     <Property Id="ORG_NAME" Value="MyOrganization" Secure="yes" />
     <Property Id="GROUP_NAME" Value="MyGroup" Secure="yes" />
 
-    <!-- Folder paths - defaults to CommonAppDataFolder\PinShare -->
-    <Property Id="DATA_FOLDER" Value="[CommonAppDataFolder]PinShare" Secure="yes" />
-    <Property Id="LOGS_FOLDER" Value="[CommonAppDataFolder]PinShare\logs" Secure="yes" />
-    <Property Id="UPLOAD_FOLDER" Value="[CommonAppDataFolder]PinShare\upload" Secure="yes" />
-    <Property Id="CACHE_FOLDER" Value="[CommonAppDataFolder]PinShare\cache" Secure="yes" />
+    <!-- Folder paths - use string literals, will be resolved at install time -->
+    <Property Id="LOGS_FOLDER" Value="C:\ProgramData\PinShare\logs" Secure="yes" />
+    <Property Id="UPLOAD_FOLDER" Value="C:\ProgramData\PinShare\upload" Secure="yes" />
+    <Property Id="CACHE_FOLDER" Value="C:\ProgramData\PinShare\cache" Secure="yes" />
 
     <!-- Port configuration -->
     <Property Id="IPFS_API_PORT" Value="5001" Secure="yes" />
@@ -45,63 +44,41 @@
         <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
 
         <!-- Title -->
-        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes">
-          <Text>{\WixUI_Font_Title}Configuration</Text>
-        </Control>
-        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes">
-          <Text>Configure PinShare for your organization.</Text>
-        </Control>
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Configuration" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Configure PinShare for your organization." />
 
         <!-- Organization Name -->
-        <Control Id="OrgNameLabel" Type="Text" X="20" Y="60" Width="100" Height="15">
-          <Text>Organization Name:</Text>
-        </Control>
+        <Control Id="OrgNameLabel" Type="Text" X="20" Y="60" Width="100" Height="15" Text="Organization Name:" />
         <Control Id="OrgNameEdit" Type="Edit" X="125" Y="58" Width="220" Height="18" Property="ORG_NAME" />
 
         <!-- Group Name -->
-        <Control Id="GroupNameLabel" Type="Text" X="20" Y="85" Width="100" Height="15">
-          <Text>Group Name:</Text>
-        </Control>
+        <Control Id="GroupNameLabel" Type="Text" X="20" Y="85" Width="100" Height="15" Text="Group Name:" />
         <Control Id="GroupNameEdit" Type="Edit" X="125" Y="83" Width="220" Height="18" Property="GROUP_NAME" />
 
         <!-- Logs Folder -->
-        <Control Id="LogsFolderLabel" Type="Text" X="20" Y="110" Width="100" Height="15">
-          <Text>Logs Folder:</Text>
-        </Control>
-        <Control Id="LogsFolderEdit" Type="PathEdit" X="125" Y="108" Width="220" Height="18" Property="LOGS_FOLDER" />
+        <Control Id="LogsFolderLabel" Type="Text" X="20" Y="110" Width="100" Height="15" Text="Logs Folder:" />
+        <Control Id="LogsFolderEdit" Type="Edit" X="125" Y="108" Width="220" Height="18" Property="LOGS_FOLDER" />
 
         <!-- UI Port -->
-        <Control Id="UIPortLabel" Type="Text" X="20" Y="140" Width="50" Height="15">
-          <Text>UI Port:</Text>
-        </Control>
+        <Control Id="UIPortLabel" Type="Text" X="20" Y="140" Width="50" Height="15" Text="UI Port:" />
         <Control Id="UIPortEdit" Type="Edit" X="75" Y="138" Width="50" Height="18" Property="UI_PORT" />
 
         <!-- API Port -->
-        <Control Id="APIPortLabel" Type="Text" X="140" Y="140" Width="50" Height="15">
-          <Text>API Port:</Text>
-        </Control>
+        <Control Id="APIPortLabel" Type="Text" X="140" Y="140" Width="50" Height="15" Text="API Port:" />
         <Control Id="APIPortEdit" Type="Edit" X="195" Y="138" Width="50" Height="18" Property="PINSHARE_API_PORT" />
 
         <!-- P2P Port -->
-        <Control Id="P2PPortLabel" Type="Text" X="260" Y="140" Width="50" Height="15">
-          <Text>P2P Port:</Text>
-        </Control>
+        <Control Id="P2PPortLabel" Type="Text" X="260" Y="140" Width="50" Height="15" Text="P2P Port:" />
         <Control Id="P2PPortEdit" Type="Edit" X="295" Y="138" Width="50" Height="18" Property="PINSHARE_P2P_PORT" />
 
         <!-- Skip VirusTotal checkbox -->
-        <Control Id="SkipVTCheck" Type="CheckBox" X="20" Y="170" Width="320" Height="17" Property="SKIP_VIRUSTOTAL" CheckBoxValue="1">
-          <Text>Skip VirusTotal scanning (for private/air-gapped networks)</Text>
-        </Control>
+        <Control Id="SkipVTCheck" Type="CheckBox" X="20" Y="170" Width="320" Height="17" Property="SKIP_VIRUSTOTAL" CheckBoxValue="1" Text="Skip VirusTotal scanning (for private/air-gapped networks)" />
 
         <!-- Enable Cache checkbox -->
-        <Control Id="CacheCheck" Type="CheckBox" X="20" Y="190" Width="150" Height="17" Property="ENABLE_CACHE" CheckBoxValue="1">
-          <Text>Enable file caching</Text>
-        </Control>
+        <Control Id="CacheCheck" Type="CheckBox" X="20" Y="190" Width="150" Height="17" Property="ENABLE_CACHE" CheckBoxValue="1" Text="Enable file caching" />
 
         <!-- Archive Node checkbox -->
-        <Control Id="ArchiveCheck" Type="CheckBox" X="180" Y="190" Width="180" Height="17" Property="ARCHIVE_NODE" CheckBoxValue="1">
-          <Text>Run as archive node</Text>
-        </Control>
+        <Control Id="ArchiveCheck" Type="CheckBox" X="180" Y="190" Width="180" Height="17" Property="ARCHIVE_NODE" CheckBoxValue="1" Text="Run as archive node" />
 
         <!-- Navigation buttons -->
         <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
@@ -116,11 +93,11 @@
       </Dialog>
 
       <!-- Wire up the dialog sequence: InstallDirDlg -> PinShareConfigDlg -> VerifyReadyDlg -->
-      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="PinShareConfigDlg" Order="4">1</Publish>
-      <Publish Dialog="PinShareConfigDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Order="1">1</Publish>
-      <Publish Dialog="PinShareConfigDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="1">1</Publish>
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="PinShareConfigDlg" Order="1">NOT Installed</Publish>
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2">Installed</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="PinShareConfigDlg" Order="4" Condition="1" />
+      <Publish Dialog="PinShareConfigDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Order="1" Condition="1" />
+      <Publish Dialog="PinShareConfigDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="1" Condition="1" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="PinShareConfigDlg" Order="1" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2" Condition="Installed" />
 
     </UI>
   </Fragment>
